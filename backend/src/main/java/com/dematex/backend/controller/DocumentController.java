@@ -22,14 +22,9 @@ public class DocumentController {
         return documentService.getDocuments(entityCode, type, periodStart, periodEnd, status, cursor, limit);
     }
 
-    @GetMapping("/documents/delta")
-    public PaginatedResponse<DocumentDTO> getDelta(@RequestParam Instant lastUpdate, @RequestParam(defaultValue = "100") int limit) {
-        return documentService.getDelta(lastUpdate, limit);
-    }
-
     @GetMapping("/documents/{documentId}")
     public ResponseEntity<DocumentDTO> getDocument(@PathVariable String documentId) {
-        return documentService.getDocument(documentId).map(doc -> ResponseEntity.ok(documentService.convertToDTO(doc))).orElse(ResponseEntity.notFound().build());
+        return documentService.getDocument(documentId).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/stats")
@@ -37,16 +32,27 @@ public class DocumentController {
 
     @GetMapping("/documents/{documentId}/content")
     public ResponseEntity<Resource> getContent(@PathVariable String documentId) {
-        return documentService.getDocument(documentId).<ResponseEntity<Resource>>map(doc -> {
-            Resource resource = new ByteArrayResource(doc.getContent());
-            return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + documentId + ".bin\"").contentType(MediaType.APPLICATION_OCTET_STREAM).contentLength(doc.getContent().length).body(resource);
-        }).orElse(ResponseEntity.notFound().build());
+        try {
+            byte[] content = documentService.getFileContent(documentId);
+            Resource resource = new ByteArrayResource(content);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + documentId + ".bin\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .contentLength(content.length)
+                    .body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PostMapping("/entities/{entityCode}/documents/{documentId}/acknowledgements")
     public ResponseEntity<Void> addAcknowledgement(@PathVariable String entityCode, @PathVariable String documentId, @RequestBody AcknowledgementRequest request) {
-        documentService.addAcknowledgement(entityCode, documentId, request.getType(), request.getDetails());
-        return ResponseEntity.ok().build();
+        try {
+            documentService.addAcknowledgement(entityCode, documentId, request.getType(), request.getDetails());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/documents/{documentId}/acknowledgements")
