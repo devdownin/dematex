@@ -6,6 +6,8 @@ import com.dematex.backend.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -114,9 +116,10 @@ public class DocumentService {
     }
 
     /**
-     * Tâche planifiée synchronisant l'index JPA avec l'état réel du filesystem.
-     * S'exécute toutes les minutes.
+     * Tâche synchronisant l'index JPA avec l'état réel du filesystem.
+     * S'exécute au démarrage de l'application et toutes les minutes.
      */
+    @EventListener(ApplicationReadyEvent.class)
     @Scheduled(fixedDelay = 60000)
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = "stats", allEntries = true)
