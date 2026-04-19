@@ -14,6 +14,7 @@ public interface DocumentRepository extends JpaRepository<Document, String> {
            "AND (:periodEnd IS NULL OR d.period <= :periodEnd) " +
            "AND (:status IS NULL OR d.status = :status) " +
            "AND (:cursor IS NULL OR d.documentId > :cursor) " +
+           "AND (:lateOnly IS NULL OR :lateOnly = FALSE OR (d.status != 'AR3' AND d.createdAt < :lateThreshold)) " +
            "ORDER BY d.documentId")
     List<Document> findDocumentsWithFilters(
             @Param("entityCode") String entityCode,
@@ -22,6 +23,8 @@ public interface DocumentRepository extends JpaRepository<Document, String> {
             @Param("periodEnd") String periodEnd,
             @Param("status") AcknowledgementType status,
             @Param("cursor") String cursor,
+            @Param("lateOnly") Boolean lateOnly,
+            @Param("lateThreshold") Instant lateThreshold,
             Pageable pageable);
 
     List<Document> findByUpdatedAtAfterOrderByUpdatedAtAsc(Instant lastUpdate, Pageable pageable);

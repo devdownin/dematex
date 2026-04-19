@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.file.*;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,14 +22,17 @@ import java.util.stream.Stream;
 @Service @RequiredArgsConstructor @Slf4j
 public class DocumentService {
 
+    private static final Duration AR3_SLA = Duration.ofDays(2);
+
     private final DocumentRepository documentRepository;
 
     @Value("${storage.root:./regulatory_files}")
     private String storageRoot;
 
-    public PaginatedResponse<DocumentDTO> getDocuments(String entityCode, DocumentType type, String periodStart, String periodEnd, AcknowledgementType status, String cursor, int limit) {
+    public PaginatedResponse<DocumentDTO> getDocuments(String entityCode, DocumentType type, String periodStart, String periodEnd, AcknowledgementType status, String cursor, Boolean lateOnly, int limit) {
+        Instant lateThreshold = Instant.now().minus(AR3_SLA);
         List<Document> documents = documentRepository.findDocumentsWithFilters(
-                entityCode, type, periodStart, periodEnd, status, cursor, PageRequest.of(0, limit + 1));
+                entityCode, type, periodStart, periodEnd, status, cursor, lateOnly, lateThreshold, PageRequest.of(0, limit + 1));
 
         boolean hasMore = documents.size() > limit;
         List<Document> resultList = hasMore ? documents.subList(0, limit) : documents;
@@ -39,13 +43,17 @@ public class DocumentService {
     }
 
     public DashboardStats getStats() {
-        long total = documentRepository.count();
-        long ar3 = documentRepository.countByStatus(AcknowledgementType.AR3);
+        List<DocumentDTO> allDocs = documentRepository.findAll().stream().map(this::convertToDTO).toList();
+        long total = allDocs.size();
+        long ar3 = allDocs.stream().filter(d -> d.getStatus() == AcknowledgementType.AR3).count();
+        long late = allDocs.stream().filter(DocumentDTO::isLate).count();
+
         return DashboardStats.builder()
                 .totalDocuments(total)
                 .ar3Completed(ar3)
                 .ar3Pending(total - ar3)
                 .ar3CompletionRate(total > 0 ? (double) ar3 / total * 100 : 0)
+                .lateDocuments(late)
                 .build();
     }
 
@@ -68,7 +76,6 @@ public class DocumentService {
         Path newPath = currentPath.resolveSibling(baseName + newExtension);
         Files.move(currentPath, newPath, StandardCopyOption.REPLACE_EXISTING);
 
-        // Update index
         Document doc = documentRepository.findById(documentId).orElseThrow();
         doc.setStatus(type);
         documentRepository.save(doc);
@@ -76,13 +83,11 @@ public class DocumentService {
         log.info("Updated status for document {} to {} on disk and in index", documentId, type);
     }
 
-    @Scheduled(fixedDelay = 60000) // Every minute
+    @Scheduled(fixedDelay = 60000)
     @Transactional
     public void syncFileSystemToIndex() {
         log.info("Starting filesystem sync to index...");
         List<Document> currentOnDisk = scanFileSystem();
-
-        // Simple sync: refresh all. For production, use incremental logic.
         documentRepository.deleteAll();
         documentRepository.saveAll(currentOnDisk);
         log.info("Filesystem sync complete. Indexed {} documents.", currentOnDisk.size());
@@ -159,6 +164,11 @@ public class DocumentService {
         dto.setStatus(doc.getStatus());
         dto.setCreatedAt(doc.getCreatedAt());
         dto.setUpdatedAt(doc.getUpdatedAt());
+
+        Instant deadline = doc.getCreatedAt().plus(AR3_SLA);
+        dto.setDeadline(deadline);
+        dto.setLate(doc.getStatus() != AcknowledgementType.AR3 && Instant.now().isAfter(deadline));
+
         return dto;
     }
 

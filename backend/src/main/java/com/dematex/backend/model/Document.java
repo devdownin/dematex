@@ -14,6 +14,6 @@ public class Document {
     private Instant createdAt;
     private Instant updatedAt;
     @Lob private byte[] content;
-    @PrePersist protected void onCreate() { createdAt = updatedAt = Instant.now(); }
+    @PrePersist protected void onCreate() { if (createdAt == null) createdAt = Instant.now(); updatedAt = createdAt; }
     @PreUpdate protected void onUpdate() { updatedAt = Instant.now(); }
 }

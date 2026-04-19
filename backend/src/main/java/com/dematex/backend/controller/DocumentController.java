@@ -18,8 +18,8 @@ public class DocumentController {
     private final DocumentService documentService;
 
     @GetMapping("/entities/{entityCode}/documents")
-    public PaginatedResponse<DocumentDTO> getDocuments(@PathVariable String entityCode, @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "100") int limit, @RequestParam(required = false) DocumentType type, @RequestParam(required = false) String periodStart, @RequestParam(required = false) String periodEnd, @RequestParam(required = false) AcknowledgementType status) {
-        return documentService.getDocuments(entityCode, type, periodStart, periodEnd, status, cursor, limit);
+    public PaginatedResponse<DocumentDTO> getDocuments(@PathVariable String entityCode, @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "100") int limit, @RequestParam(required = false) DocumentType type, @RequestParam(required = false) String periodStart, @RequestParam(required = false) String periodEnd, @RequestParam(required = false) AcknowledgementType status, @RequestParam(required = false) Boolean lateOnly) {
+        return documentService.getDocuments(entityCode, type, periodStart, periodEnd, status, cursor, lateOnly, limit);
     }
 
     @GetMapping("/documents/{documentId}")

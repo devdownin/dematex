@@ -13,4 +13,6 @@ public class DocumentDTO {
     private AcknowledgementType status;
     private Instant createdAt;
     private Instant updatedAt;
+    private Instant deadline;
+    private boolean isLate;
 }

@@ -8,4 +8,5 @@ public class DashboardStats {
     private long ar3Completed;
     private long ar3Pending;
     private double ar3CompletionRate;
+    private long lateDocuments;
 }

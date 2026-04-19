@@ -29,9 +29,9 @@ import { DashboardStats } from '../../models/document.model';
           </mat-card>
         </mat-grid-tile>
         <mat-grid-tile>
-          <mat-card class="kpi-card warn">
-            <mat-card-header><mat-icon color="warn">error</mat-icon><mat-card-title>AR-3 Pending</mat-card-title></mat-card-header>
-            <mat-card-content><div class="kpi-value">{{stats.ar3Pending}}</div></mat-card-content>
+          <mat-card class="kpi-card warn" [class.highlight-warn]="stats.lateDocuments > 0">
+            <mat-card-header><mat-icon color="warn">history</mat-icon><mat-card-title>Late (SLA Violation)</mat-card-title></mat-card-header>
+            <mat-card-content><div class="kpi-value">{{stats.lateDocuments}}</div></mat-card-content>
           </mat-card>
         </mat-grid-tile>
         <mat-grid-tile>
@@ -44,7 +44,7 @@ import { DashboardStats } from '../../models/document.model';
 
       <div class="charts-container" *ngIf="stats">
         <mat-card>
-          <mat-card-header><mat-card-title>Status Distribution</mat-card-title></mat-card-header>
+          <mat-card-header><mat-card-title>SLA & Legal Compliance</mat-card-title></mat-card-header>
           <mat-card-content>
             <div style="display: block; height: 300px;">
               <canvas baseChart
@@ -65,6 +65,7 @@ import { DashboardStats } from '../../models/document.model';
     .kpi-card { width: 100%; height: 100%; }
     .kpi-value { font-size: 2rem; font-weight: bold; margin-top: 10px; }
     .charts-container { margin-top: 20px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+    .highlight-warn { border: 2px solid #f44336; }
   `]
 })
 export class DashboardComponent implements OnInit {
@@ -76,8 +77,8 @@ export class DashboardComponent implements OnInit {
     plugins: { legend: { display: true, position: 'top' } }
   };
   public pieChartData: ChartConfiguration['data'] = {
-    labels: ['AR-3 Completed', 'Pending'],
-    datasets: [{ data: [0, 0] }]
+    labels: ['AR-3 Completed', 'Late (SLA Violation)', 'Pending (In SLA)'],
+    datasets: [{ data: [0, 0, 0] }]
   };
   public pieChartType: ChartType = 'pie';
 
@@ -86,11 +87,12 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.documentService.getStats().subscribe(s => {
       this.stats = s;
+      const inSlaPending = s.totalDocuments - s.ar3Completed - s.lateDocuments;
       this.pieChartData = {
-        labels: ['AR-3 Completed', 'Pending'],
+        labels: ['AR-3 Completed', 'Late (SLA Violation)', 'Pending (In SLA)'],
         datasets: [{
-          data: [s.ar3Completed, s.ar3Pending],
-          backgroundColor: ['#4caf50', '#f44336']
+          data: [s.ar3Completed, s.lateDocuments, inSlaPending],
+          backgroundColor: ['#4caf50', '#f44336', '#ff9800']
         }]
       };
     });
