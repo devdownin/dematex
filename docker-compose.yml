@@ -1,0 +1,17 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./regulatory_files:/app/regulatory_files
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - STORAGE_ROOT=/app/regulatory_files
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

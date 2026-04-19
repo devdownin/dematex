@@ -2,10 +2,14 @@ package com.dematex.backend.service;
 
 import com.dematex.backend.dto.*;
 import com.dematex.backend.model.*;
+import com.dematex.backend.repository.DocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -17,41 +21,26 @@ import java.util.stream.Stream;
 @Service @RequiredArgsConstructor @Slf4j
 public class DocumentService {
 
+    private final DocumentRepository documentRepository;
+
     @Value("${storage.root:./regulatory_files}")
     private String storageRoot;
 
     public PaginatedResponse<DocumentDTO> getDocuments(String entityCode, DocumentType type, String periodStart, String periodEnd, AcknowledgementType status, String cursor, int limit) {
-        List<DocumentDTO> allDocs = scanFileSystem();
+        List<Document> documents = documentRepository.findDocumentsWithFilters(
+                entityCode, type, periodStart, periodEnd, status, cursor, PageRequest.of(0, limit + 1));
 
-        List<DocumentDTO> filtered = allDocs.stream()
-                .filter(d -> entityCode == null || d.getEntityCode().equals(entityCode))
-                .filter(d -> type == null || d.getType() == type)
-                .filter(d -> status == null || d.getStatus() == status)
-                .sorted(Comparator.comparing(DocumentDTO::getDocumentId))
-                .collect(Collectors.toList());
+        boolean hasMore = documents.size() > limit;
+        List<Document> resultList = hasMore ? documents.subList(0, limit) : documents;
+        String nextCursor = resultList.isEmpty() ? null : resultList.get(resultList.size() - 1).getDocumentId();
 
-        int startIndex = 0;
-        if (cursor != null) {
-            for (int i = 0; i < filtered.size(); i++) {
-                if (filtered.get(i).getDocumentId().compareTo(cursor) > 0) {
-                    startIndex = i;
-                    break;
-                }
-            }
-        }
-
-        int toIndex = Math.min(startIndex + limit, filtered.size());
-        List<DocumentDTO> page = filtered.subList(startIndex, toIndex);
-        boolean hasMore = toIndex < filtered.size();
-        String nextCursor = page.isEmpty() ? null : page.get(page.size() - 1).getDocumentId();
-
-        return new PaginatedResponse<>(page, hasMore ? nextCursor : null, hasMore);
+        List<DocumentDTO> dtos = resultList.stream().map(this::convertToDTO).collect(Collectors.toList());
+        return new PaginatedResponse<>(dtos, hasMore ? nextCursor : null, hasMore);
     }
 
     public DashboardStats getStats() {
-        List<DocumentDTO> allDocs = scanFileSystem();
-        long total = allDocs.size();
-        long ar3 = allDocs.stream().filter(d -> d.getStatus() == AcknowledgementType.AR3).count();
+        long total = documentRepository.count();
+        long ar3 = documentRepository.countByStatus(AcknowledgementType.AR3);
         return DashboardStats.builder()
                 .totalDocuments(total)
                 .ar3Completed(ar3)
@@ -61,27 +50,46 @@ public class DocumentService {
     }
 
     public Optional<DocumentDTO> getDocument(String documentId) {
-        return scanFileSystem().stream().filter(d -> d.getDocumentId().equals(documentId)).findFirst();
+        return documentRepository.findById(documentId).map(this::convertToDTO);
     }
 
     public byte[] getFileContent(String documentId) throws IOException {
-        Path filePath = findFile(documentId);
+        Path filePath = findFileOnDisk(documentId);
         return Files.readAllBytes(filePath);
     }
 
+    @Transactional
     public void addAcknowledgement(String entityCode, String documentId, AcknowledgementType type, String details) throws IOException {
-        Path currentPath = findFile(documentId);
+        Path currentPath = findFileOnDisk(documentId);
         String filename = currentPath.getFileName().toString();
         String baseName = filename.substring(0, filename.lastIndexOf('.'));
         String newExtension = "." + type.name();
 
         Path newPath = currentPath.resolveSibling(baseName + newExtension);
         Files.move(currentPath, newPath, StandardCopyOption.REPLACE_EXISTING);
-        log.info("Updated status for document {} to {} by renaming file to {}", documentId, type, newPath);
+
+        // Update index
+        Document doc = documentRepository.findById(documentId).orElseThrow();
+        doc.setStatus(type);
+        documentRepository.save(doc);
+
+        log.info("Updated status for document {} to {} on disk and in index", documentId, type);
     }
 
-    private List<DocumentDTO> scanFileSystem() {
-        List<DocumentDTO> docs = new ArrayList<>();
+    @Scheduled(fixedDelay = 60000) // Every minute
+    @Transactional
+    public void syncFileSystemToIndex() {
+        log.info("Starting filesystem sync to index...");
+        List<Document> currentOnDisk = scanFileSystem();
+
+        // Simple sync: refresh all. For production, use incremental logic.
+        documentRepository.deleteAll();
+        documentRepository.saveAll(currentOnDisk);
+        log.info("Filesystem sync complete. Indexed {} documents.", currentOnDisk.size());
+    }
+
+    private List<Document> scanFileSystem() {
+        List<Document> docs = new ArrayList<>();
         Path root = Paths.get(storageRoot).toAbsolutePath();
         if (!Files.exists(root)) return docs;
 
@@ -96,7 +104,7 @@ public class DocumentService {
                                 String typeStr = typePath.getFileName().toString();
                                 try (Stream<Path> files = Files.list(typePath)) {
                                     files.filter(Files::isRegularFile).forEach(filePath -> {
-                                        docs.add(mapFileToDTO(recipient, entity, typeStr, filePath));
+                                        docs.add(mapFileToEntity(recipient, entity, typeStr, filePath));
                                     });
                                 } catch (IOException ignored) {}
                             });
@@ -110,51 +118,48 @@ public class DocumentService {
         return docs;
     }
 
-    private DocumentDTO mapFileToDTO(String recipient, String entity, String typeStr, Path filePath) {
+    private Document mapFileToEntity(String recipient, String entity, String typeStr, Path filePath) {
         String filename = filePath.getFileName().toString();
         int lastDot = filename.lastIndexOf('.');
         String docId = filename.substring(0, lastDot);
         String ext = filename.substring(lastDot + 1);
 
-        DocumentDTO dto = new DocumentDTO();
-        dto.setDocumentId(docId);
-        dto.setEntityCode(entity);
-        dto.setIssuerCode(recipient);
-        try {
-            dto.setType(DocumentType.valueOf(typeStr));
-        } catch (Exception e) {
-            dto.setType(DocumentType.REFERENTIEL);
-        }
+        Document doc = new Document();
+        doc.setDocumentId(docId);
+        doc.setEntityCode(entity);
+        doc.setIssuerCode(recipient);
+        try { doc.setType(DocumentType.valueOf(typeStr)); } catch (Exception e) { doc.setType(DocumentType.REFERENTIEL); }
 
         if (ext.equalsIgnoreCase("ALIRE")) {
-            dto.setStatus(AcknowledgementType.AR0);
+            doc.setStatus(AcknowledgementType.AR0);
         } else {
-            try {
-                dto.setStatus(AcknowledgementType.valueOf(ext));
-            } catch (Exception e) {
-                dto.setStatus(AcknowledgementType.AR0);
-            }
+            try { doc.setStatus(AcknowledgementType.valueOf(ext)); } catch (Exception e) { doc.setStatus(AcknowledgementType.AR0); }
         }
 
-        try {
-            dto.setCreatedAt(Files.getLastModifiedTime(filePath).toInstant());
-            dto.setUpdatedAt(dto.getCreatedAt());
-        } catch (IOException e) {
-            dto.setCreatedAt(Instant.now());
-        }
-        dto.setPeriod("2024-01");
-        return dto;
+        try { doc.setCreatedAt(Files.getLastModifiedTime(filePath).toInstant()); } catch (IOException e) { doc.setCreatedAt(Instant.now()); }
+        doc.setUpdatedAt(doc.getCreatedAt());
+        doc.setPeriod("2024-01");
+        return doc;
     }
 
-    private Path findFile(String documentId) throws IOException {
+    private Path findFileOnDisk(String documentId) throws IOException {
         return Files.walk(Paths.get(storageRoot))
                 .filter(p -> p.getFileName().toString().startsWith(documentId + "."))
                 .findFirst()
-                .orElseThrow(() -> new FileNotFoundException("Document " + documentId + " not found"));
+                .orElseThrow(() -> new IOException("Document " + documentId + " not found on disk"));
     }
 
-    public static class FileNotFoundException extends IOException {
-        public FileNotFoundException(String msg) { super(msg); }
+    private DocumentDTO convertToDTO(Document doc) {
+        DocumentDTO dto = new DocumentDTO();
+        dto.setDocumentId(doc.getDocumentId());
+        dto.setType(doc.getType());
+        dto.setEntityCode(doc.getEntityCode());
+        dto.setIssuerCode(doc.getIssuerCode());
+        dto.setPeriod(doc.getPeriod());
+        dto.setStatus(doc.getStatus());
+        dto.setCreatedAt(doc.getCreatedAt());
+        dto.setUpdatedAt(doc.getUpdatedAt());
+        return dto;
     }
 
     public List<Acknowledgement> getAcknowledgements(String documentId) {

@@ -3,13 +3,15 @@ import { CommonModule } from '@angular/common';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { BaseChartDirective } from 'ng2-charts';
+import { ChartConfiguration, ChartType } from 'chart.js';
 import { DocumentService } from '../../services/document.service';
 import { DashboardStats } from '../../models/document.model';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, MatGridListModule, MatCardModule, MatIconModule],
+  imports: [CommonModule, MatGridListModule, MatCardModule, MatIconModule, BaseChartDirective],
   template: `
     <div class="dashboard-container">
       <h2>Operational Dashboard</h2>
@@ -27,7 +29,7 @@ import { DashboardStats } from '../../models/document.model';
           </mat-card>
         </mat-grid-tile>
         <mat-grid-tile>
-          <mat-card class="kpi-card">
+          <mat-card class="kpi-card warn">
             <mat-card-header><mat-icon color="warn">error</mat-icon><mat-card-title>AR-3 Pending</mat-card-title></mat-card-header>
             <mat-card-content><div class="kpi-value">{{stats.ar3Pending}}</div></mat-card-content>
           </mat-card>
@@ -39,13 +41,58 @@ import { DashboardStats } from '../../models/document.model';
           </mat-card>
         </mat-grid-tile>
       </mat-grid-list>
-      <div *ngIf="!stats">Loading stats...</div>
+
+      <div class="charts-container" *ngIf="stats">
+        <mat-card>
+          <mat-card-header><mat-card-title>Status Distribution</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <div style="display: block; height: 300px;">
+              <canvas baseChart
+                [data]="pieChartData"
+                [type]="pieChartType"
+                [options]="pieChartOptions">
+              </canvas>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <div *ngIf="!stats">Loading dashboard...</div>
     </div>
   `,
-  styles: [`.dashboard-container { padding: 10px; } .kpi-card { width: 100%; height: 100%; } .kpi-value { font-size: 2rem; font-weight: bold; margin-top: 10px; }`]
+  styles: [`
+    .dashboard-container { padding: 10px; }
+    .kpi-card { width: 100%; height: 100%; }
+    .kpi-value { font-size: 2rem; font-weight: bold; margin-top: 10px; }
+    .charts-container { margin-top: 20px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+  `]
 })
 export class DashboardComponent implements OnInit {
   stats?: DashboardStats;
+
+  public pieChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: true, position: 'top' } }
+  };
+  public pieChartData: ChartConfiguration['data'] = {
+    labels: ['AR-3 Completed', 'Pending'],
+    datasets: [{ data: [0, 0] }]
+  };
+  public pieChartType: ChartType = 'pie';
+
   constructor(private documentService: DocumentService) {}
-  ngOnInit(): void { this.documentService.getStats().subscribe(s => this.stats = s); }
+
+  ngOnInit(): void {
+    this.documentService.getStats().subscribe(s => {
+      this.stats = s;
+      this.pieChartData = {
+        labels: ['AR-3 Completed', 'Pending'],
+        datasets: [{
+          data: [s.ar3Completed, s.ar3Pending],
+          backgroundColor: ['#4caf50', '#f44336']
+        }]
+      };
+    });
+  }
 }
