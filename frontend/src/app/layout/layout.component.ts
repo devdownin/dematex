@@ -6,15 +6,17 @@ import { MatListModule } from '@angular/material/list';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { ConfigService } from '../services/config.service';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
   imports: [CommonModule, RouterModule, MatSidenavModule, MatListModule, MatToolbarModule, MatIconModule, MatButtonModule],
   template: `
-    <mat-toolbar color="primary">
+    <mat-toolbar [style.background-color]="config()?.primaryColor" color="primary">
       <button mat-icon-button (click)="sidenav.toggle()"><mat-icon>menu</mat-icon></button>
-      <span>Dematex Supervision</span>
+      <img *ngIf="config()?.logoUrl" [src]="config()?.logoUrl" alt="Logo" style="height: 32px; margin-right: 10px;">
+      <span>{{ config()?.companyName || 'Dematex Supervision' }}</span>
     </mat-toolbar>
     <mat-sidenav-container style="height: calc(100vh - 64px);">
       <mat-sidenav #sidenav mode="side" opened style="width: 200px;">
@@ -30,4 +32,9 @@ import { MatButtonModule } from '@angular/material/button';
     </mat-sidenav-container>
   `
 })
-export class LayoutComponent {}
+export class LayoutComponent {
+  config;
+  constructor(private configService: ConfigService) {
+    this.config = this.configService.config;
+  }
+}

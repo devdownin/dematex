@@ -33,3 +33,19 @@ Le projet est "Docker-ready".
 docker-compose up --build
 ```
 Les fichiers réglementaires doivent être montés dans le volume `/app/regulatory_files`.
+
+## Personnalisation (Branding)
+
+Le portail peut être personnalisé via `application.properties` (ou variables d'environnement) :
+
+- `portal.company-name` : Nom de l'entreprise affiché dans le header.
+- `portal.logo-url` : URL du logo (format SVG recommandé).
+- `portal.primary-color` : Couleur principale de l'interface (code hexadécimal).
+- `portal.support-email` : Email de contact pour le support.
+
+Exemple en Docker :
+```yaml
+environment:
+  - PORTAL_COMPANY_NAME=MaBanque Digitale
+  - PORTAL_PRIMARY_COLOR=#e91e63
+```
