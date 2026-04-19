@@ -3,12 +3,14 @@ package com.dematex.backend.service;
 import com.dematex.backend.dto.DocumentDTO;
 import com.dematex.backend.model.AcknowledgementType;
 import com.dematex.backend.model.Document;
-import com.dematex.backend.model.DocumentType;
 import com.dematex.backend.repository.DocumentRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -17,14 +19,19 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class DocumentServiceTest {
 
-    @Autowired
+    @InjectMocks
     private DocumentService documentService;
 
-    @MockitoBean
+    @Mock
     private DocumentRepository documentRepository;
+
+    @BeforeEach
+    public void setup() {
+        ReflectionTestUtils.setField(documentService, "storageRoot", "./regulatory_files");
+    }
 
     @Test
     public void testSlaCalculation_Late() {
