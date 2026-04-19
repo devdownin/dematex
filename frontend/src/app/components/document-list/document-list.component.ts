@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DocumentService } from '../../services/document.service';
-import { DocumentDTO } from '../../models/document.model';
+import { DocumentDTO, DashboardStats } from '../../models/document.model';
 
 @Component({
   selector: 'app-document-list',
@@ -31,11 +31,11 @@ import { DocumentDTO } from '../../models/document.model';
       </div>
 
       <!-- Quick Metrics -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6" *ngIf="stats">
         <div class="bg-white p-6 rounded-xl border-l-4 border-primary shadow-sm flex justify-between items-center">
           <div>
             <p class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1">Total Assets</p>
-            <h3 class="text-2xl font-black text-primary">12,842</h3>
+            <h3 class="text-2xl font-black text-primary">{{stats.totalDocuments | number}}</h3>
           </div>
           <div class="p-3 bg-primary/5 rounded-lg">
             <span class="material-symbols-outlined text-primary/40">inventory_2</span>
@@ -44,7 +44,7 @@ import { DocumentDTO } from '../../models/document.model';
         <div class="bg-white p-6 rounded-xl border-l-4 border-[#24a375] shadow-sm flex justify-between items-center">
           <div>
             <p class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1">Validated</p>
-            <h3 class="text-2xl font-black text-[#24a375]">94.2%</h3>
+            <h3 class="text-2xl font-black text-[#24a375]">{{stats.ar3CompletionRate | number:'1.1-1'}}%</h3>
           </div>
           <div class="p-3 bg-[#24a375]/5 rounded-lg">
             <span class="material-symbols-outlined text-[#24a375]/40">verified_user</span>
@@ -53,7 +53,7 @@ import { DocumentDTO } from '../../models/document.model';
         <div class="bg-white p-6 rounded-xl border-l-4 border-error shadow-sm flex justify-between items-center">
           <div>
             <p class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1">Critical Errors</p>
-            <h3 class="text-2xl font-black text-error">12</h3>
+            <h3 class="text-2xl font-black text-error">{{stats.lateDocuments}}</h3>
           </div>
           <div class="p-3 bg-error/5 rounded-lg">
             <span class="material-symbols-outlined text-error/40">warning</span>
@@ -62,7 +62,7 @@ import { DocumentDTO } from '../../models/document.model';
         <div class="bg-white p-6 rounded-xl border-l-4 border-[#44617d] shadow-sm flex justify-between items-center">
           <div>
             <p class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-1">Pending AR-3</p>
-            <h3 class="text-2xl font-black text-[#44617d]">184</h3>
+            <h3 class="text-2xl font-black text-[#44617d]">{{stats.ar3Pending}}</h3>
           </div>
           <div class="p-3 bg-[#44617d]/5 rounded-lg">
             <span class="material-symbols-outlined text-[#44617d]/40">assignment_late</span>
@@ -83,7 +83,7 @@ import { DocumentDTO } from '../../models/document.model';
               <span class="text-xs font-bold text-primary">2023 Q4</span>
             </div>
           </div>
-          <p class="text-[11px] font-semibold text-on-surface-variant">Displaying <span class="font-bold text-primary">1-{{documents.length}}</span> of {{documents.length}} records</p>
+          <p class="text-[11px] font-semibold text-on-surface-variant">Displaying <span class="font-bold text-primary">1-{{documents.length}}</span> of {{stats?.totalDocuments || documents.length}} records</p>
         </div>
 
         <div class="overflow-x-auto">
@@ -149,9 +149,13 @@ import { DocumentDTO } from '../../models/document.model';
 })
 export class DocumentListComponent implements OnInit {
   documents: DocumentDTO[] = [];
+  stats?: DashboardStats;
   lateOnly = false;
   constructor(private documentService: DocumentService) {}
-  ngOnInit(): void { this.loadDocuments(); }
+  ngOnInit(): void {
+    this.loadDocuments();
+    this.documentService.getStats().subscribe(s => this.stats = s);
+  }
   loadDocuments(): void {
     this.documentService.getDocuments('ENT_ALPHA', { limit: 15, lateOnly: this.lateOnly }).subscribe(res => this.documents = res.items);
   }
