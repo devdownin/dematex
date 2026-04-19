@@ -1,10 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #00152a;
+  --color-surface: #f6fafe;
+  --color-on-surface: #171c1f;
+  --color-on-surface-variant: #43474d;
+  --color-primary-container: #102a43;
+  --color-tertiary-fixed-dim: #68dba9;
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-surface-container-low: #f0f4f8;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-high: #e4e9ed;
+
+  --font-headline: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+}
+
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body { margin: 0; font-family: 'Inter', sans-serif; background-color: #f6fafe; }
 
 :root {
-  --primary-color: #3f51b5;
+  --primary-color: #00152a;
 }
 
 .mat-toolbar.mat-primary {
   background: var(--primary-color) !important;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.zebra-stripe:nth-child(even) {
+    background-color: #f0f4f8;
+}
+
+.glass-overlay {
+    background: rgba(246, 250, 254, 0.7);
+    backdrop-filter: blur(16px);
+}
+
+.tonal-stack {
+    transition: all 0.2s ease-in-out;
+}
+
+.tonal-stack:hover {
+    background-color: rgba(191, 221, 254, 0.5);
 }

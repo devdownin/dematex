@@ -32,7 +32,7 @@ For floating elements like tooltips or modal overlays, utilize **Glassmorphism**
 We use **Inter** exclusively for its neutral, high-legibility character, but we style it with editorial intent.
 
 *   **Display & Headlines:** Use `display-md` or `headline-lg` for dashboard summaries. These should have a slight letter-spacing of `-0.02em` to feel more "tight" and authoritative.
-*   **The Body Logic:** The `body-md` (0.875rem) is our workhorse for document text. 
+*   **The Body Logic:** The `body-md` (0.875rem) is our workhorse for document text.
 *   **Labels:** `label-sm` (0.6875rem) should be used for status badges and metadata, always in uppercase with `+0.05em` letter-spacing to ensure legibility despite the small size.
 *   **Tonal Contrast:** Primary headers use `on-surface` (#171c1f), while secondary metadata uses `on-surface-variant` (#43474d). This "grey-on-white" hierarchy is more sophisticated than varying font weights alone.
 
