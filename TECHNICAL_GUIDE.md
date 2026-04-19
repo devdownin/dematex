@@ -3,8 +3,8 @@
 ## Stack Technique
 
 - **Backend** : Java 21, Spring Boot 3.4, Spring Data JPA, Spring Security, Spring Retry, Caffeine.
-- **Frontend** : Angular 19+, Angular Material, Chart.js.
-- **Build** : Maven & NPM.
+- **Frontend** : Angular 21, Tailwind CSS v4, Chart.js.
+- **Build** : Maven & NPM (PostCSS v8+).
 
 ## Maintenance du Backend
 
@@ -21,7 +21,10 @@ Le cache des statistiques (`stats`) est géré par Caffeine. Il est automatiquem
 ## Maintenance du Frontend
 
 ### Mise à jour des graphiques
-Les composants utilisent `ng2-charts`. Pour modifier les couleurs ou les types de graphiques, éditer `dashboard.component.ts`.
+Les composants utilisent `ng2-charts`. Pour modifier les couleurs ou les types de graphiques, éditer `dashboard.component.ts`. Le dashboard utilise également Chart.js pour l'analyse de latence.
+
+### Système de Design (Tailwind CSS v4)
+Le projet utilise Tailwind CSS v4. La configuration globale du thème se trouve dans `frontend/src/styles.scss` via le bloc `@theme`. Toute modification des couleurs de marque ou des polices doit être effectuée à cet endroit.
 
 ### Gestion des routes
 Les routes sont définies dans `app.routes.ts`. L'architecture utilise des composants Standalone.

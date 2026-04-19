@@ -44,6 +44,14 @@ export class DocumentService {
     return this.http.get<DashboardStats>(`${this.apiUrl}/stats`);
   }
 
+  getAuditLogs(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/audit`);
+  }
+
+  getLatencyTrends(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/stats/latency-trends`);
+  }
+
   /** Télécharge le contenu binaire du document. */
   getDocumentContent(documentId: string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/documents/${documentId}/content`, { responseType: 'blob' });

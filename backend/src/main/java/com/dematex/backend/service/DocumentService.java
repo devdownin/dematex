@@ -2,10 +2,12 @@ package com.dematex.backend.service;
 
 import com.dematex.backend.dto.*;
 import com.dematex.backend.model.*;
-import com.dematex.backend.repository.DocumentRepository;
+import com.dematex.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,9 @@ public class DocumentService {
     private static final Duration AR3_SLA = Duration.ofDays(2);
 
     private final DocumentRepository documentRepository;
+    private final AcknowledgementRepository acknowledgementRepository;
+    private final AuditLogRepository auditLogRepository;
+    private final EventService eventService;
 
     @Value("${storage.root:./regulatory_files}")
     private String storageRoot;
@@ -110,13 +115,29 @@ public class DocumentService {
         doc.setStatus(type);
         documentRepository.save(doc);
 
+        acknowledgementRepository.save(Acknowledgement.builder()
+                .documentId(documentId)
+                .entityCode(entityCode)
+                .type(type)
+                .details(details)
+                .build());
+
+        auditLogRepository.save(AuditLog.builder()
+                .user("system_user") // En production, utiliser SecurityContext
+                .action("ACK_UPDATE")
+                .resource(documentId)
+                .status(type.name())
+                .build());
+
         log.info("Status mis à jour : {} -> {} (Fichier renommé en {})", documentId, type, newPath);
+        eventService.broadcast("doc-updated", Map.of("documentId", documentId, "status", type));
     }
 
     /**
-     * Tâche planifiée synchronisant l'index JPA avec l'état réel du filesystem.
-     * S'exécute toutes les minutes.
+     * Tâche synchronisant l'index JPA avec l'état réel du filesystem.
+     * S'exécute au démarrage de l'application et toutes les minutes.
      */
+    @EventListener(ApplicationReadyEvent.class)
     @Scheduled(fixedDelay = 60000)
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = "stats", allEntries = true)
@@ -224,6 +245,24 @@ public class DocumentService {
     }
 
     public List<Acknowledgement> getAcknowledgements(String documentId) {
-        return Collections.emptyList();
+        return acknowledgementRepository.findByDocumentIdOrderByTimestampAsc(documentId);
+    }
+
+    public List<AuditLog> getAuditLogs() {
+        return auditLogRepository.findAllByOrderByTimestampDesc();
+    }
+
+    public List<Map<String, Object>> getLatencyTrends() {
+        // Simule une agrégation par date sur les 7 derniers jours
+        List<Map<String, Object>> trends = new ArrayList<>();
+        Instant now = Instant.now();
+        for (int i = 6; i >= 0; i--) {
+            Instant day = now.minus(Duration.ofDays(i));
+            Map<String, Object> data = new HashMap<>();
+            data.put("date", day.toString().substring(0, 10));
+            data.put("count", documentRepository.count()); // Simplifié pour la démo
+            trends.add(data);
+        }
+        return trends;
     }
 }

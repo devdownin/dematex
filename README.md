@@ -7,12 +7,12 @@ Professional Single Window for Dematerialization, serving as a portal for consul
 The system is designed for high-volumetry industrial ETL integration.
 
 - **Backend**: Java 21, Spring Boot 3, REST APIs with cursor-based pagination.
-- **Frontend**: Angular 19+, Angular Material, SaaS Enterprise UX.
+- **Frontend**: Angular 21, Tailwind CSS v4, SaaS Enterprise UX (High-Fidelity).
 - **Storage**: Physical filesystem-based discovery with status management via file extensions.
 
 ## Key Features
 
-- **Operational Dashboard**: Real-time KPIs on AR-3 completion and legal compliance.
+- **Operational Dashboard**: High-fidelity Bento Grid UI with real-time KPIs on AR-3 completion and Temporal Latency Analysis.
 - **Document Catalog**: Advanced data grid with server-side discovery.
 - **Traceability**: Full acknowledgement timeline (AR-0 to AR-4).
 - **Security**: CSP, Referrer-Policy, and Correlation ID traceability.

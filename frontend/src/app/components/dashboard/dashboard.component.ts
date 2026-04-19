@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
@@ -18,6 +18,10 @@ import { DashboardStats } from '../../models/document.model';
           <p class="text-[#43474d] font-medium mt-1">Real-time regulatory status for Fiscal Year 2024</p>
         </div>
         <div class="flex gap-2 bg-[#f0f4f8] p-1 rounded-lg">
+          <div *ngIf="isLive" class="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 text-[10px] font-black uppercase rounded-md border border-green-200">
+            <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            Live
+          </div>
           <button class="px-4 py-1.5 text-xs font-bold bg-white shadow-sm rounded">Daily</button>
           <button class="px-4 py-1.5 text-xs font-semibold text-[#43474d] hover:text-[#171c1f]">Weekly</button>
           <button class="px-4 py-1.5 text-xs font-semibold text-[#43474d] hover:text-[#171c1f]">Monthly</button>
@@ -75,9 +79,9 @@ import { DashboardStats } from '../../models/document.model';
             <p class="text-[#43474d] text-xs font-semibold mt-1">Requiring Administrator Action</p>
           </div>
           <div class="flex -space-x-2 mt-4">
-            <div class="h-6 w-6 rounded-full ring-2 ring-white bg-slate-200 flex items-center justify-center text-[10px] font-bold">JD</div>
-            <div class="h-6 w-6 rounded-full ring-2 ring-white bg-slate-300 flex items-center justify-center text-[10px] font-bold">AS</div>
-            <div class="h-6 w-6 rounded-full ring-2 ring-white bg-slate-400 flex items-center justify-center text-[10px] font-bold">+1</div>
+            <div class="h-6 w-6 rounded-full ring-2 ring-white bg-slate-200 flex items-center justify-center text-[8px] font-bold">JD</div>
+            <div class="h-6 w-6 rounded-full ring-2 ring-white bg-slate-300 flex items-center justify-center text-[8px] font-bold">AS</div>
+            <div class="h-6 w-6 rounded-full ring-2 ring-white bg-slate-400 flex items-center justify-center text-[8px] font-bold">+1</div>
           </div>
         </div>
       </div>
@@ -86,7 +90,7 @@ import { DashboardStats } from '../../models/document.model';
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <!-- Delay Tracking Section -->
         <div class="lg:col-span-2 space-y-6">
-          <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100">
+          <div class="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100" *ngIf="stats">
             <div class="px-6 py-5 flex justify-between items-center bg-[#f0f4f8]">
               <h3 class="font-bold text-[#171c1f] uppercase tracking-tight">Temporal Latency Analysis</h3>
               <span class="material-symbols-outlined text-[#43474d]">schedule</span>
@@ -94,21 +98,21 @@ import { DashboardStats } from '../../models/document.model';
             <div class="p-6">
               <div class="grid grid-cols-3 gap-6">
                 <div class="text-center p-4 bg-[#f6fafe] rounded-lg">
-                  <p class="text-[10px] font-bold text-[#43474d] uppercase mb-2">J+2 Window</p>
-                  <p class="text-xl font-black text-[#00152a]">98%</p>
+                  <p class="text-[10px] font-bold text-[#43474d] uppercase mb-2">Completion</p>
+                  <p class="text-xl font-black text-[#00152a]">{{stats.ar3CompletionRate | number:'1.0-0'}}%</p>
                   <div class="w-full bg-[#e4e9ed] h-1 rounded-full mt-2 overflow-hidden">
-                    <div class="bg-[#00152a] h-full" style="width: 98%"></div>
+                    <div class="bg-[#00152a] h-full" [style.width.%]="stats.ar3CompletionRate"></div>
                   </div>
                 </div>
                 <div class="text-center p-4 bg-[#f6fafe] rounded-lg">
-                  <p class="text-[10px] font-bold text-[#43474d] uppercase mb-2">J+5 Window</p>
-                  <p class="text-xl font-black text-[#00152a]">82%</p>
+                  <p class="text-[10px] font-bold text-[#43474d] uppercase mb-2">Late Docs</p>
+                  <p class="text-xl font-black text-[#00152a]">{{stats.lateDocuments}}</p>
                   <div class="w-full bg-[#e4e9ed] h-1 rounded-full mt-2 overflow-hidden">
-                    <div class="bg-[#00152a] h-full" style="width: 82%"></div>
+                    <div class="bg-[#ba1a1a] h-full" [style.width.%]="(stats.lateDocuments / stats.totalDocuments * 100)"></div>
                   </div>
                 </div>
                 <div class="text-center p-4 bg-[#f6fafe] rounded-lg">
-                  <p class="text-[10px] font-bold text-[#43474d] uppercase mb-2">M+1 Cycle</p>
+                  <p class="text-[10px] font-bold text-[#43474d] uppercase mb-2">Integrity</p>
                   <p class="text-xl font-black text-[#68dba9]">100%</p>
                   <div class="w-full bg-[#e4e9ed] h-1 rounded-full mt-2 overflow-hidden">
                     <div class="bg-[#68dba9] h-full" style="width: 100%"></div>
@@ -133,35 +137,35 @@ import { DashboardStats } from '../../models/document.model';
           <!-- Efficiency Card -->
           <div class="bg-[#00152a] p-6 rounded-xl text-white">
             <h4 class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Global Efficiency</h4>
-            <p class="text-3xl font-black mb-4">91.4%</p>
-            <p class="text-xs opacity-80 leading-relaxed mb-6">Your supervision unit is performing 12% above the industry benchmark for regulatory document processing.</p>
+            <p class="text-3xl font-black mb-4">{{ stats?.ar3CompletionRate | number:'1.1-1' }}%</p>
+            <p class="text-xs opacity-80 leading-relaxed mb-6">Your supervision unit is performing at {{ stats?.ar3CompletionRate | number:'1.0-0' }}% AR-3 completion rate, ensuring regulatory compliance.</p>
             <button class="w-full py-3 bg-white/10 hover:bg-white/20 transition-all rounded-lg font-bold text-xs uppercase tracking-widest">Generate Report</button>
           </div>
 
           <!-- Workflow Radar -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100" *ngIf="stats">
             <h4 class="text-[10px] font-black uppercase tracking-widest text-[#43474d] mb-6">Queue Composition</h4>
             <div class="space-y-4">
               <div class="flex justify-between items-center text-xs">
-                <span class="font-bold">Standard Review</span>
-                <span class="font-black">{{ stats?.ar3Completed }}</span>
+                <span class="font-bold">Validated (AR-3)</span>
+                <span class="font-black">{{ stats.ar3Completed }}</span>
               </div>
               <div class="w-full bg-[#f0f4f8] h-1.5 rounded-full overflow-hidden">
-                <div class="bg-[#00152a] h-full" [style.width.%]="(stats?.ar3Completed || 0) / (stats?.totalDocuments || 1) * 100"></div>
+                <div class="bg-[#24a375] h-full" [style.width.%]="(stats.ar3Completed / stats.totalDocuments * 100)"></div>
               </div>
               <div class="flex justify-between items-center text-xs">
-                <span class="font-bold">Pending Review</span>
-                <span class="font-black">{{ stats?.ar3Pending }}</span>
+                <span class="font-bold">Pending</span>
+                <span class="font-black">{{ stats.ar3Pending }}</span>
               </div>
               <div class="w-full bg-[#f0f4f8] h-1.5 rounded-full overflow-hidden">
-                <div class="bg-[#44617d] h-full" [style.width.%]="(stats?.ar3Pending || 0) / (stats?.totalDocuments || 1) * 100"></div>
+                <div class="bg-[#44617d] h-full" [style.width.%]="(stats.ar3Pending / stats.totalDocuments * 100)"></div>
               </div>
               <div class="flex justify-between items-center text-xs">
-                <span class="font-bold">Manual Escalation (Late)</span>
-                <span class="font-black">{{ stats?.lateDocuments }}</span>
+                <span class="font-bold">Critical Errors (Late)</span>
+                <span class="font-black">{{ stats.lateDocuments }}</span>
               </div>
               <div class="w-full bg-[#f0f4f8] h-1.5 rounded-full overflow-hidden">
-                <div class="bg-[#ba1a1a] h-full" [style.width.%]="(stats?.lateDocuments || 0) / (stats?.totalDocuments || 1) * 100"></div>
+                <div class="bg-[#ba1a1a] h-full" [style.width.%]="(stats.lateDocuments / stats.totalDocuments * 100)"></div>
               </div>
             </div>
           </div>
@@ -173,8 +177,10 @@ import { DashboardStats } from '../../models/document.model';
     :host { display: block; }
   `]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   stats?: DashboardStats;
+  isLive = false;
+  private eventSource?: EventSource;
 
   public barChartOptions: ChartConfiguration['options'] = {
     responsive: true,
@@ -187,9 +193,9 @@ export class DashboardComponent implements OnInit {
   };
 
   public barChartData: ChartConfiguration['data'] = {
-    labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+    labels: [],
     datasets: [{
-      data: [40, 55, 45, 70, 65, 80, 95, 85, 90, 100],
+      data: [],
       backgroundColor: 'rgba(16, 42, 67, 0.1)',
       hoverBackgroundColor: 'rgba(16, 42, 67, 0.2)',
       borderRadius: 4
@@ -199,8 +205,30 @@ export class DashboardComponent implements OnInit {
   constructor(private documentService: DocumentService) {}
 
   ngOnInit(): void {
+    this.loadStats();
+    this.loadTrends();
+    this.connectSSE();
+  }
+
+  ngOnDestroy(): void {
+    if (this.eventSource) {
+      this.eventSource.close();
+    }
+  }
+
+  private loadStats(): void {
     this.documentService.getStats().subscribe(s => {
       this.stats = s;
+    });
+  }
+
+  private connectSSE(): void {
+    this.eventSource = new EventSource('/api/v1/events');
+    this.eventSource.onopen = () => this.isLive = true;
+    this.eventSource.onerror = () => this.isLive = false;
+    this.eventSource.addEventListener('doc-updated', () => {
+      this.loadStats();
+      this.loadTrends();
     });
   }
 }
