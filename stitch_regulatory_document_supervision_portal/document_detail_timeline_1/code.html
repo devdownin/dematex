@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign Ledger | Document Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#2c4964",
+                        "secondary-fixed": "#cee5ff",
+                        "primary-container": "#102a43",
+                        "on-tertiary-container": "#24a375",
+                        "on-primary-container": "#7a92b0",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#b0c9e8",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#e4e9ed",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#314863",
+                        "tertiary-fixed-dim": "#68dba9",
+                        "on-surface": "#171c1f",
+                        "on-tertiary-fixed-variant": "#005137",
+                        "surface-dim": "#d6dade",
+                        "surface-container-highest": "#dfe3e7",
+                        "on-secondary-container": "#45627e",
+                        "on-secondary-fixed": "#001d33",
+                        "surface-bright": "#f6fafe",
+                        "secondary": "#44617d",
+                        "primary-fixed": "#d1e4ff",
+                        "tertiary-container": "#00301f",
+                        "inverse-surface": "#2c3134",
+                        "secondary-fixed-dim": "#accaea",
+                        "surface-tint": "#49607c",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#00190e",
+                        "surface": "#f6fafe",
+                        "on-primary-fixed": "#011d35",
+                        "secondary-container": "#bfddfe",
+                        "surface-container-low": "#f0f4f8",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#43474d",
+                        "tertiary-fixed": "#85f8c4",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "outline": "#74777e",
+                        "inverse-on-surface": "#edf1f5",
+                        "primary-fixed-dim": "#b0c9e8",
+                        "surface-container": "#eaeef2",
+                        "background": "#f6fafe",
+                        "on-background": "#171c1f",
+                        "surface-variant": "#dfe3e7",
+                        "outline-variant": "#c3c6ce",
+                        "on-error-container": "#93000a",
+                        "primary": "#00152a",
+                        "on-tertiary-fixed": "#002114"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .scale-98-on-click:active {
+            transform: scale(0.98);
+        }
+        .uppercase-labels {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-screen w-64 bg-slate-100 dark:bg-slate-900 border-none tonal-shift-bg-surface-container-low py-6 px-4 space-y-2">
+<div class="px-2 mb-8">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-white" data-icon="account_balance">account_balance</span>
+</div>
+<div>
+<h1 class="font-bold text-slate-900 dark:text-white leading-tight">Guichet Unique</h1>
+<p class="text-[10px] uppercase-labels font-semibold text-on-surface-variant">Regulatory Supervision</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ease-in-out duration-150 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-sm font-semibold uppercase-labels">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 text-slate-950 dark:text-white font-semibold shadow-sm" href="#">
+<span class="material-symbols-outlined" data-icon="Table_Chart">table_chart</span>
+<span class="text-sm font-semibold uppercase-labels">Document Catalog</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ease-in-out duration-150 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+<span class="text-sm font-semibold uppercase-labels">Audit Log</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ease-in-out duration-150 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined" data-icon="api">api</span>
+<span class="text-sm font-semibold uppercase-labels">API Documentation</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ease-in-out duration-150 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined" data-icon="settings_input_component">settings_input_component</span>
+<span class="text-sm font-semibold uppercase-labels">System Settings</span>
+</a>
+</nav>
+<div class="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+<span class="text-sm font-semibold uppercase-labels">Support</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-slate-600 dark:text-slate-400 hover:bg-slate-200/50" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="text-sm font-semibold uppercase-labels">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 flex flex-col min-w-0 bg-surface overflow-y-auto">
+<!-- TopNavBar -->
+<header class="sticky top-0 z-50 bg-slate-50 dark:bg-slate-950 flex justify-between items-center px-8 py-4 w-full no-border tonal-layering-via-bg-surface font-['Inter'] antialiased tracking-tight">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-500 cursor-pointer md:hidden" data-icon="menu">menu</span>
+<span class="text-xl font-black tracking-tighter text-slate-900 dark:text-white">Sovereign Ledger</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden sm:flex items-center gap-4">
+<span class="text-slate-500 dark:text-slate-400 font-medium text-sm hover:bg-slate-200/40 px-3 py-1 rounded-lg transition-all cursor-pointer">Compliance Check</span>
+<span class="text-slate-900 dark:text-white font-bold text-sm bg-slate-200/40 px-3 py-1 rounded-lg transition-all cursor-pointer">Document Detail</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="p-2 text-slate-500 hover:bg-slate-200/40 rounded-full transition-all scale-98-on-click duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/40 rounded-full transition-all scale-98-on-click duration-200">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden ml-2 ring-2 ring-slate-200 dark:ring-slate-800">
+<img alt="Administrator Profile" data-alt="Professional portrait of a male regulatory administrator in a dark suit, soft natural lighting office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD01-ZQqRmQAQsJfuGCv8RYw50CbGymDbCZ27XZkpJI2_7kBbwWlmRYgQXRNt4BuCchAVc02SMvLOds0O0FwucRT88q016Ckadzta55uaFIvINdxptMeslsT_v7LZOyTz35ni_-zf6R4PISiiU7BEeXxoAEr9eUFMUt4HlNGGA_rD7rwcRtAhTqxmIDDS430GC2ws_z-muh8azcF7cvjjo64rg5WNDQDbSGlYGcVYcVpm1KY47N1VLhf7X7-8jwQBlWk1ltrbf5OhY"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="p-8 max-w-7xl mx-auto w-full space-y-8">
+<!-- Breadcrumbs -->
+<nav class="flex items-center gap-2 text-on-surface-variant">
+<span class="text-xs uppercase-labels font-semibold hover:text-primary cursor-pointer">Catalog</span>
+<span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+<span class="text-xs uppercase-labels font-semibold">AR-3 Verification</span>
+</nav>
+<!-- Metadata Header Hero -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-surface-container-lowest p-10 rounded-xl shadow-sm relative overflow-hidden">
+<div class="absolute top-0 right-0 w-64 h-64 opacity-5 pointer-events-none translate-x-1/3 -translate-y-1/3">
+<span class="material-symbols-outlined text-[200px]" data-icon="verified_user">verified_user</span>
+</div>
+<div class="space-y-4 relative z-10">
+<div class="inline-flex items-center px-3 py-1 bg-tertiary-fixed-dim text-on-tertiary-fixed-variant rounded-sm text-[10px] font-bold uppercase-labels">
+                        Verified Ledger Entry
+                    </div>
+<div>
+<h2 class="text-4xl font-extrabold tracking-tight text-on-surface">TXN-992-SEC-8821</h2>
+<div class="flex flex-wrap gap-x-8 gap-y-2 mt-4 text-sm font-medium text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="domain">domain</span>
+<span>Entity: <strong class="text-on-surface">Global FinCorp Holding</strong></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="account_balance">account_balance</span>
+<span>Issuer: <strong class="text-on-surface">Monetary Authority (MA-01)</strong></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="calendar_today">calendar_today</span>
+<span>Filed: <strong class="text-on-surface">Oct 24, 2023</strong></span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-3 relative z-10 w-full md:w-auto">
+<button class="bg-primary text-on-primary px-8 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg transition-transform scale-98-on-click">
+<span class="material-symbols-outlined" data-icon="file_download">file_download</span>
+                        Secure Download
+                    </button>
+<div class="flex gap-2">
+<button class="flex-1 bg-surface-container-high px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-300 transition-colors">
+                            View History
+                        </button>
+<button class="flex-1 bg-surface-container-high px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-300 transition-colors">
+                            Retry AR
+                        </button>
+</div>
+</div>
+</div>
+<!-- Asymmetric Bento Grid Section -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Acknowledgement Timeline (Main Content 70%) -->
+<div class="lg:col-span-8 space-y-6">
+<div class="bg-surface-container-lowest p-8 rounded-xl shadow-sm h-full">
+<h3 class="text-lg font-bold mb-8 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="route">route</span>
+                            Lifecycle Acknowledgement Chain
+                        </h3>
+<div class="relative pl-8 border-l-2 border-surface-container-high space-y-12 ml-4">
+<!-- AR-0 -->
+<div class="relative">
+<div class="absolute -left-[41px] top-0 w-4 h-4 rounded-full bg-tertiary-fixed-dim ring-8 ring-white ring-offset-0"></div>
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-on-surface uppercase-labels text-sm tracking-widest">AR-0 : Receipt Confirmation</h4>
+<p class="text-on-surface-variant text-sm mt-1">Initial ingestion into the Sovereign Node. Checksum verified.</p>
+</div>
+<span class="text-xs font-mono text-on-surface-variant">2023-10-24 08:30:12</span>
+</div>
+</div>
+<!-- AR-2 -->
+<div class="relative">
+<div class="absolute -left-[41px] top-0 w-4 h-4 rounded-full bg-tertiary-fixed-dim ring-8 ring-white"></div>
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-on-surface uppercase-labels text-sm tracking-widest">AR-2 : Technical Validation</h4>
+<p class="text-on-surface-variant text-sm mt-1">Schema match for Fin-XSD-4.0. No structural anomalies detected.</p>
+</div>
+<span class="text-xs font-mono text-on-surface-variant">2023-10-24 09:15:00</span>
+</div>
+</div>
+<!-- AR-3 (HIGHLIGHTED) -->
+<div class="relative bg-secondary-container/20 -mx-4 p-4 rounded-lg">
+<div class="absolute -left-[25px] top-4 w-4 h-4 rounded-full bg-tertiary-fixed-dim ring-8 ring-white border-2 border-primary"></div>
+<div class="flex justify-between items-start">
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-bold text-on-surface uppercase-labels text-sm tracking-widest">AR-3 : Legal Proof (Final)</h4>
+<span class="bg-tertiary-fixed-dim text-on-tertiary-fixed-variant px-2 py-0.5 rounded-sm text-[9px] font-bold">COMPLIANT</span>
+</div>
+<p class="text-on-surface-variant text-sm mt-1 font-medium italic">"The document has attained full evidentiary weight. Digital signature chain complete."</p>
+<div class="mt-4 flex items-center gap-4 bg-white p-3 rounded-lg border border-outline-variant/20">
+<span class="material-symbols-outlined text-on-tertiary-container" data-icon="security" data-weight="fill" style="font-variation-settings: 'FILL' 1;">security</span>
+<div>
+<p class="text-[10px] uppercase-labels text-on-surface-variant font-bold">Legal Hash (SHA-512)</p>
+<p class="text-xs font-mono text-primary truncate w-64">f2ca1bb6c7e907d06dafe4687e579fce76b377...</p>
+</div>
+</div>
+</div>
+<span class="text-xs font-mono text-on-surface-variant">2023-10-24 11:42:21</span>
+</div>
+</div>
+<!-- AR-4 -->
+<div class="relative">
+<div class="absolute -left-[41px] top-0 w-4 h-4 rounded-full bg-surface-container-high ring-8 ring-white"></div>
+<div class="flex justify-between items-start opacity-60">
+<div>
+<h4 class="font-bold text-on-surface uppercase-labels text-sm tracking-widest">AR-4 : Distribution Chain</h4>
+<p class="text-on-surface-variant text-sm mt-1">Pending distribution to Secondary Oversight nodes.</p>
+</div>
+<span class="text-xs font-mono text-on-surface-variant">Scheduled</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Stats (30%) -->
+<div class="lg:col-span-4 space-y-8">
+<!-- Proof Visualization -->
+<div class="bg-primary text-on-primary p-8 rounded-xl relative overflow-hidden shadow-xl">
+<div class="absolute -bottom-10 -right-10 opacity-10">
+<span class="material-symbols-outlined text-[160px]" data-icon="policy">policy</span>
+</div>
+<h4 class="text-xs font-bold uppercase-labels tracking-[0.2em] mb-4 text-on-primary-container">Integrity Index</h4>
+<div class="text-5xl font-black mb-2">99.8<span class="text-2xl font-normal opacity-50">%</span></div>
+<p class="text-sm opacity-80 leading-relaxed">Document integrity verified against global regulatory standard GS-221. Proof of existence established on Ledger #118.</p>
+<div class="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full bg-slate-300 ring-2 ring-primary overflow-hidden">
+<img alt="Reviewer 1" data-alt="Close-up of middle-aged male auditor's face with neutral expression, professional studio lighting, blurred background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC45fK3l7H56DVcXNQk8EcCK2BC83zh10n91qcLVOiD_p1We0CSpIg_MNwhR9x4vQh_E9uI3vC6mWp1F4vwNAjJySObZkX7WwsxRxAAFSkLIEuch7SKM6uuhmQGNAPr0JqvEIlE8D1juaddcGQBD531LN0V_hnPNvqxfGn-L9pcHXB9qnOKXWEArrWon-0yqbjmhZLp4Odw1_P8_NO2zNDZ3fa53MNjEVHhYbNWKvOsmpuasrxowGA-23fBVj5uE_VJZLhUzqvwOZw"/>
+</div>
+<div class="w-8 h-8 rounded-full bg-slate-300 ring-2 ring-primary overflow-hidden">
+<img alt="Reviewer 2" data-alt="Close-up of confident female legal consultant, smiling slightly, professional corporate attire, bright office lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwfBvG-GiQ_z0rL9fKuHWyP7YluHtpxZXpWIxmNnzaffGliiUK9Kj3Eb0mcdBpACNkWXY627TqQ6CDgMaP01IPO-ksEmVcTNjliXa4Eu7i8h0kBEUVWzuDbQgw8tkJ4HPFbnGv8mlc0MlschNlzcGU7RFI3lV8hYQgqDBnfPhGDAx5DFnMb4CwZSUTjl2nFx_evCgw-gRdTu4F9Vcwq0N10Lpu6JTxGtJMj4udlBSmCQ3v6Ks6qMS3mWz14PqZQhbodgjPA5rG00k"/>
+</div>
+<div class="w-8 h-8 rounded-full bg-slate-700 ring-2 ring-primary flex items-center justify-center text-[10px] font-bold">
+                                    +3
+                                </div>
+</div>
+<span class="text-[10px] uppercase-labels font-bold">Reviewer Board</span>
+</div>
+</div>
+<!-- Visual Breakdown Card -->
+<div class="bg-surface-container-low p-6 rounded-xl space-y-4">
+<h4 class="text-xs font-bold uppercase-labels text-on-surface-variant">Asset Breakdown</h4>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium">Text Elements</span>
+<span class="text-sm font-bold">2.4 MB</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full">
+<div class="bg-primary w-full h-full rounded-full"></div>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium">Encrypted BLOBs</span>
+<span class="text-sm font-bold">18.1 MB</span>
+</div>
+<div class="w-full bg-surface-container-high h-1.5 rounded-full">
+<div class="bg-on-tertiary-container w-[75%] h-full rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Security Alert Overlay Pattern -->
+<div class="bg-secondary-fixed p-6 rounded-xl flex items-start gap-4">
+<span class="material-symbols-outlined text-on-secondary-fixed-variant" data-icon="gpp_maybe">gpp_maybe</span>
+<div>
+<h5 class="text-sm font-bold text-on-secondary-fixed-variant">Access Control</h5>
+<p class="text-xs text-on-secondary-fixed-variant opacity-80 mt-1">This document contains Restricted PII. Access is logged and audited in real-time.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Audit Trail Section -->
+<section class="bg-surface-container-lowest p-8 rounded-xl shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="list_alt">list_alt</span>
+                        Comprehensive Audit Trail
+                    </h3>
+<button class="text-sm font-semibold text-primary flex items-center gap-1 hover:underline">
+                        Export Logs <span class="material-symbols-outlined text-sm" data-icon="north_east">north_east</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-container-low">
+<th class="py-4 text-[10px] uppercase-labels text-on-surface-variant font-bold px-4">Event Type</th>
+<th class="py-4 text-[10px] uppercase-labels text-on-surface-variant font-bold px-4">Timestamp</th>
+<th class="py-4 text-[10px] uppercase-labels text-on-surface-variant font-bold px-4">Actor</th>
+<th class="py-4 text-[10px] uppercase-labels text-on-surface-variant font-bold px-4">Origin IP</th>
+<th class="py-4 text-[10px] uppercase-labels text-on-surface-variant font-bold px-4">Status</th>
+</tr>
+</thead>
+<tbody class="text-sm font-medium">
+<tr class="hover:bg-secondary-container/50 transition-colors cursor-default">
+<td class="py-4 px-4">AR-3 Generation</td>
+<td class="py-4 px-4 font-mono text-xs">2023-10-24 11:42:21</td>
+<td class="py-4 px-4">System (Node_882)</td>
+<td class="py-4 px-4 font-mono text-xs">192.168.1.104</td>
+<td class="py-4 px-4">
+<span class="bg-tertiary-fixed-dim text-on-tertiary-fixed-variant px-2 py-0.5 rounded-sm text-[9px] font-bold">SUCCESS</span>
+</td>
+</tr>
+<tr class="bg-surface-container-low/30 hover:bg-secondary-container/50 transition-colors cursor-default">
+<td class="py-4 px-4">Document Access</td>
+<td class="py-4 px-4 font-mono text-xs">2023-10-24 12:05:55</td>
+<td class="py-4 px-4">Admin (j.doe@gov.org)</td>
+<td class="py-4 px-4 font-mono text-xs">45.22.19.102</td>
+<td class="py-4 px-4">
+<span class="bg-secondary-fixed text-on-secondary-fixed-variant px-2 py-0.5 rounded-sm text-[9px] font-bold">AUTHORIZED</span>
+</td>
+</tr>
+<tr class="hover:bg-secondary-container/50 transition-colors cursor-default">
+<td class="py-4 px-4">Signature Validation</td>
+<td class="py-4 px-4 font-mono text-xs">2023-10-24 09:15:00</td>
+<td class="py-4 px-4">Auth_Service_v2</td>
+<td class="py-4 px-4 font-mono text-xs">192.168.1.002</td>
+<td class="py-4 px-4">
+<span class="bg-tertiary-fixed-dim text-on-tertiary-fixed-variant px-2 py-0.5 rounded-sm text-[9px] font-bold">SUCCESS</span>
+</td>
+</tr>
+<tr class="bg-surface-container-low/30 hover:bg-secondary-container/50 transition-colors cursor-default">
+<td class="py-4 px-4">External API Probe</td>
+<td class="py-4 px-4 font-mono text-xs">2023-10-24 08:31:02</td>
+<td class="py-4 px-4">External_Connector</td>
+<td class="py-4 px-4 font-mono text-xs">10.0.12.55</td>
+<td class="py-4 px-4">
+<span class="bg-error-container text-on-error-container px-2 py-0.5 rounded-sm text-[9px] font-bold">THROTTLED</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Sticky Footer Branding -->
+<footer class="mt-auto py-8 px-8 border-t border-outline-variant/10 flex flex-col md:flex-row justify-between items-center text-on-surface-variant gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="lock">lock</span>
+<span class="text-xs font-bold uppercase-labels">End-to-End Regulatory Encryption Enabled</span>
+</div>
+<div class="text-[10px] uppercase-labels font-semibold">
+                Sovereign Ledger © 2024 • Infrastructure Version 4.1.2-STABLE
+            </div>
+</footer>
+</main>
+</body></html>
