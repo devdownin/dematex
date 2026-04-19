@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sovereign Ledger | API Documentation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#2c4964",
+                        "secondary-fixed": "#cee5ff",
+                        "primary-container": "#102a43",
+                        "on-tertiary-container": "#24a375",
+                        "on-primary-container": "#7a92b0",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#b0c9e8",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#e4e9ed",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#314863",
+                        "tertiary-fixed-dim": "#68dba9",
+                        "on-surface": "#171c1f",
+                        "on-tertiary-fixed-variant": "#005137",
+                        "surface-dim": "#d6dade",
+                        "surface-container-highest": "#dfe3e7",
+                        "on-secondary-container": "#45627e",
+                        "on-secondary-fixed": "#001d33",
+                        "surface-bright": "#f6fafe",
+                        "secondary": "#44617d",
+                        "primary-fixed": "#d1e4ff",
+                        "tertiary-container": "#00301f",
+                        "inverse-surface": "#2c3134",
+                        "secondary-fixed-dim": "#accaea",
+                        "surface-tint": "#49607c",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#00190e",
+                        "surface": "#f6fafe",
+                        "on-primary-fixed": "#011d35",
+                        "secondary-container": "#bfddfe",
+                        "surface-container-low": "#f0f4f8",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#43474d",
+                        "tertiary-fixed": "#85f8c4",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#ba1a1a",
+                        "outline": "#74777e",
+                        "inverse-on-surface": "#edf1f5",
+                        "primary-fixed-dim": "#b0c9e8",
+                        "surface-container": "#eaeef2",
+                        "background": "#f6fafe",
+                        "on-background": "#171c1f",
+                        "surface-variant": "#dfe3e7",
+                        "outline-variant": "#c3c6ce",
+                        "on-error-container": "#93000a",
+                        "primary": "#00152a",
+                        "on-tertiary-fixed": "#002114"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .code-block {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased flex overflow-hidden">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-screen w-64 bg-slate-100 dark:bg-slate-900 text-slate-950 dark:text-slate-50 font-['Inter'] text-sm tracking-wide py-6 px-4 space-y-2 z-50">
+<div class="mb-8 px-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm" data-icon="account_balance">account_balance</span>
+</div>
+<div>
+<h2 class="font-bold text-slate-900 dark:text-white leading-tight">Guichet Unique</h2>
+<p class="text-[10px] text-on-surface-variant tracking-widest uppercase">Regulatory Supervision</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50 transition-colors ease-in-out duration-150 uppercase text-[11px] font-semibold" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50 transition-colors ease-in-out duration-150 uppercase text-[11px] font-semibold" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="Table_Chart">table_chart</span>
+<span>Document Catalog</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50 transition-colors ease-in-out duration-150 uppercase text-[11px] font-semibold" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="history_edu">history_edu</span>
+<span>Audit Log</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded bg-white dark:bg-slate-800 text-slate-950 dark:text-white font-bold shadow-sm uppercase text-[11px]" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="api">api</span>
+<span>API Documentation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/50 transition-colors ease-in-out duration-150 uppercase text-[11px] font-semibold" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="settings_input_component">settings_input_component</span>
+<span>System Settings</span>
+</a>
+</nav>
+<div class="mt-auto space-y-1">
+<button class="w-full mb-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold uppercase tracking-wider">New Document</button>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 transition-colors uppercase text-[10px] font-semibold" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="help_outline">help_outline</span>
+<span>Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 transition-colors uppercase text-[10px] font-semibold" href="#">
+<span class="material-symbols-outlined text-lg" data-icon="logout">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center px-8 py-4 w-full bg-slate-50 dark:bg-slate-950 font-['Inter'] antialiased tracking-tight sticky top-0 z-40">
+<div class="flex items-center gap-8">
+<h1 class="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Sovereign Ledger</h1>
+<div class="hidden lg:flex items-center bg-surface-container-low rounded-full px-4 py-1.5 gap-2 border-none">
+<span class="material-symbols-outlined text-on-surface-variant text-sm" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-64 placeholder:text-on-surface-variant/50" placeholder="Search documentation..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-200/40 dark:hover:bg-slate-800/40 transition-all rounded-full scale-98-on-click duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-200/40 dark:hover:bg-slate-800/40 transition-all rounded-full scale-98-on-click duration-200">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container-high flex items-center justify-center overflow-hidden ml-2">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="professional male executive portrait in high-end office environment with natural lighting and blurred architectural background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3SB2S3ZOVB0v5IbTkYVOSvNBmqVQfcglZqDGrEB4NVZiR65_CK33SlvKzHMxzvyu0yjqBlDnzfSe19gqyOBiT-SkRwyA-2bbCH7mnkRzZTzwr4dD5n4C0kF8RNeZAdOfaMZoYX6wFtZTI_vphvuWLu3UOwqSe5DTBnqNh8yibaMCIUzCIuLf2jj9DxSJflbIphpY3jVec8525SIAFRi_CBrtVTfaNkRMHIKaFb2oqYkUunqrf2JXll3Xm_6r2hkbNrFjVmNInxoY"/>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="flex-1 overflow-y-auto bg-surface p-8">
+<!-- Hero Header Section -->
+<div class="mb-12 max-w-5xl">
+<span class="text-[10px] font-bold tracking-[0.2em] text-on-tertiary-container uppercase mb-2 block">Developer Resources</span>
+<h2 class="text-4xl font-black tracking-tighter text-on-surface mb-4 leading-none">API Reference &amp; Core Integration</h2>
+<p class="text-lg text-on-surface-variant font-medium leading-relaxed max-w-2xl">
+                    High-authority programmatic access to the Sovereign Ledger. Integrate your existing regulatory reporting systems using our secure, RESTful architecture.
+                </p>
+</div>
+<div class="grid grid-cols-12 gap-8 max-w-7xl">
+<!-- Main Documentation Flow -->
+<div class="col-span-12 lg:col-span-8 space-y-12">
+<!-- Section: Listing API -->
+<section class="space-y-6" id="listing-api">
+<div class="flex items-center gap-3">
+<span class="w-1.5 h-6 bg-primary rounded-full"></span>
+<h3 class="text-2xl font-bold tracking-tight">Listing (Cursor-based)</h3>
+</div>
+<p class="text-on-surface-variant leading-relaxed">
+                            Efficiently traverse large datasets using opaque cursors. Our listing API avoids the performance pitfalls of offset pagination, ensuring stable reads across millions of records.
+                        </p>
+<div class="bg-surface-container-lowest p-6 rounded-xl space-y-4">
+<div class="flex items-center justify-between border-b border-surface-container py-2">
+<span class="text-xs font-bold text-on-surface uppercase tracking-wider">GET /v1/documents</span>
+<span class="text-[10px] px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed-variant font-bold rounded-sm">CURSOR_REVERSE</span>
+</div>
+<div class="space-y-4">
+<div class="grid grid-cols-2 gap-4">
+<div class="p-4 bg-surface-container-low rounded-lg">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">limit</p>
+<p class="text-sm font-semibold">Integer (1..100)</p>
+</div>
+<div class="p-4 bg-surface-container-low rounded-lg">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">starting_after</p>
+<p class="text-sm font-semibold">String (UUID)</p>
+</div>
+</div>
+<div class="bg-primary-container p-4 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="text-[10px] font-bold text-on-primary-container uppercase tracking-widest">cURL Example</span>
+<span class="material-symbols-outlined text-on-primary-container text-xs cursor-pointer" data-icon="content_copy">content_copy</span>
+</div>
+<code class="text-xs text-white code-block leading-relaxed">
+                                        curl -X GET "https://api.ledger.gov/v1/documents?limit=10" \<br/>
+                                          -H "Authorization: Bearer [API_KEY]"
+                                    </code>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Delta API -->
+<section class="space-y-6" id="delta-api">
+<div class="flex items-center gap-3">
+<span class="w-1.5 h-6 bg-tertiary-fixed-dim rounded-full"></span>
+<h3 class="text-2xl font-bold tracking-tight">Delta API (Incremental)</h3>
+</div>
+<p class="text-on-surface-variant leading-relaxed">
+                            Synchronize local state with the global ledger by fetching only what changed since your last sync. Ideal for high-frequency monitoring and real-time compliance dashboards.
+                        </p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="p-6 bg-surface-container-low rounded-xl flex flex-col gap-4">
+<span class="material-symbols-outlined text-on-tertiary-container" data-icon="update">update</span>
+<h4 class="font-bold text-on-surface">Change Streams</h4>
+<p class="text-xs text-on-surface-variant">Stream document status updates without polling. Uses standard Server-Sent Events (SSE) for low-latency notifications.</p>
+</div>
+<div class="p-6 bg-surface-container-low rounded-xl flex flex-col gap-4">
+<span class="material-symbols-outlined text-on-tertiary-container" data-icon="history">history</span>
+<h4 class="font-bold text-on-surface">Sequence Numbers</h4>
+<p class="text-xs text-on-surface-variant">Every record includes an atomic sequence number (X-Seq). Use this to resume syncs from specific points in time.</p>
+</div>
+</div>
+</section>
+<!-- Section: Unitary Access -->
+<section class="space-y-6" id="unitary-access">
+<div class="flex items-center gap-3">
+<span class="w-1.5 h-6 bg-on-secondary-container rounded-full"></span>
+<h3 class="text-2xl font-bold tracking-tight">Unitary Access (Idempotency)</h3>
+</div>
+<p class="text-on-surface-variant leading-relaxed">
+                            Reliable write operations. Our API uses <code>Idempotency-Key</code> headers to prevent duplicate processing of the same request, crucial for ledger integrity.
+                        </p>
+<div class="bg-surface-container-highest/30 rounded-xl overflow-hidden">
+<div class="flex items-center bg-surface-container px-6 py-2">
+<button class="px-4 py-2 text-xs font-bold border-b-2 border-primary">Java (SDK)</button>
+<button class="px-4 py-2 text-xs font-semibold text-on-surface-variant hover:text-on-surface">Python</button>
+<button class="px-4 py-2 text-xs font-semibold text-on-surface-variant hover:text-on-surface">Node.js</button>
+</div>
+<div class="p-6 bg-slate-950">
+<pre class="text-[13px] text-slate-300 code-block leading-relaxed"><code>LedgerClient client = LedgerClient.builder()
+    .apiKey("sk_test_51Mz...")
+    .build();
+
+RequestOptions options = RequestOptions.builder()
+    .setIdempotencyKey("62ec219f-074a-4713-b605")
+    .build();
+
+Document doc = client.documents().create(params, options);</code></pre>
+</div>
+</div>
+</section>
+</div>
+<!-- Sidebar Content -->
+<div class="col-span-12 lg:col-span-4 space-y-8">
+<!-- Sandbox Console -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden sticky top-24">
+<div class="p-6 border-b border-surface-container-low">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-sm font-black uppercase tracking-wider">Testing Sandbox</h4>
+<span class="flex items-center gap-1.5 text-[10px] font-bold text-on-tertiary-container bg-tertiary-fixed-dim/20 px-2 py-0.5 rounded-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim animate-pulse"></span>
+                                    LIVE
+                                </span>
+</div>
+<div class="space-y-4">
+<div>
+<label class="text-[10px] font-bold text-on-surface-variant uppercase mb-1.5 block">Endpoint</label>
+<select class="w-full bg-surface-container-low border-none rounded text-xs font-semibold p-2.5 focus:ring-1 focus:ring-primary">
+<option>GET /v1/legal_entities</option>
+<option>POST /v1/reports</option>
+<option>GET /v1/audit_trail</option>
+</select>
+</div>
+<div>
+<label class="text-[10px] font-bold text-on-surface-variant uppercase mb-1.5 block">entityCode (Test Environment)</label>
+<input class="w-full bg-surface-container-low border-none rounded text-xs font-semibold p-2.5 focus:ring-1 focus:ring-primary" type="text" value="FR-7729-QLX"/>
+</div>
+<button class="w-full py-3 bg-primary text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm" data-icon="play_arrow">play_arrow</span>
+                                    Execute Request
+                                </button>
+</div>
+</div>
+<div class="p-6 bg-surface-container-low">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase mb-3">Response</p>
+<div class="bg-white p-3 rounded text-[11px] font-mono text-on-surface-variant/80 min-h-[120px] overflow-auto">
+                                {
+                                  "status": "success",
+                                  "data": {
+                                    "entity_id": "ent_91x72...",
+                                    "status": "verified",
+                                    "last_sync": "2023-10-27T14:22Z"
+                                  }
+                                }
+                            </div>
+</div>
+</div>
+<!-- Swagger Explorer Card -->
+<div class="relative group rounded-xl overflow-hidden aspect-[4/3] flex flex-col justify-end p-6 cursor-pointer">
+<img alt="Swagger UI Interface" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="abstract data visualization with flowing lines and glowing nodes representing a complex api infrastructure in dark blue and teal tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDvYQsi7k29e2O6dWRdlgwTzmkYW0IBMOT7rjNts88jMW3aSCcbCe54yG9L7l3MQOvgxTGphC__b3YwNKrYsoYmYHZeihLqmMeN8lZDdk27z53Q4UyGNWRv9yjaMm3sEtNXqUgb3H8B0X5n3kjo5NERPYRqqPj0zTXYSCT3aRYuJlKpAI8x8PHgYw06S5kLpNuutycjTJL5WrazJSON3uk3fjjBqLW79dKMB0H3yhf-eehoEsow4hlaHmBU-DOEPJB6zelao4Vb44"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/40 to-transparent"></div>
+<div class="relative z-10 space-y-2">
+<div class="flex items-center gap-2">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant text-[9px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-widest">Interactive UI</span>
+</div>
+<h4 class="text-white text-xl font-bold tracking-tight">Full Swagger Definition</h4>
+<p class="text-on-primary-container text-xs">Explore all 48 endpoints in our interactive Swagger UI playground.</p>
+<div class="pt-4 flex items-center gap-2 text-white text-xs font-bold group-hover:gap-4 transition-all">
+<span>Launch Explorer</span>
+<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB Integration -->
+<div class="fixed bottom-8 right-8 z-50">
+<button class="bg-primary text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="support_agent">support_agent</span>
+</button>
+</div>
+</body></html>

@@ -1,40 +1,109 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatListModule } from '@angular/material/list';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { RouterModule, Router } from '@angular/router';
 import { ConfigService } from '../services/config.service';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatSidenavModule, MatListModule, MatToolbarModule, MatIconModule, MatButtonModule],
+  imports: [CommonModule, RouterModule],
   template: `
-    <mat-toolbar [style.background-color]="config()?.primaryColor" color="primary">
-      <button mat-icon-button (click)="sidenav.toggle()"><mat-icon>menu</mat-icon></button>
-      <img *ngIf="config()?.logoUrl" [src]="config()?.logoUrl" alt="Logo" style="height: 32px; margin-right: 10px;">
-      <span>{{ config()?.companyName || 'Dematex Supervision' }}</span>
-    </mat-toolbar>
-    <mat-sidenav-container style="height: calc(100vh - 64px);">
-      <mat-sidenav #sidenav mode="side" opened style="width: 200px;">
-        <mat-nav-list>
-          <a mat-list-item routerLink="/dashboard">Dashboard</a>
-          <a mat-list-item routerLink="/documents">Documents</a>
-          <a mat-list-item routerLink="/audit">Audit Trail</a>
-        </mat-nav-list>
-      </mat-sidenav>
-      <mat-sidenav-content style="padding: 20px;">
-        <router-outlet></router-outlet>
-      </mat-sidenav-content>
-    </mat-sidenav-container>
-  `
+    <div class="flex min-h-screen text-[#171c1f] antialiased bg-[#f6fafe]">
+      <!-- SideNavBar -->
+      <aside class="hidden md:flex flex-col h-screen w-64 bg-slate-100 py-6 px-4 space-y-2 sticky top-0 font-['Inter'] text-sm tracking-wide border-r border-slate-200">
+        <div class="flex items-center gap-3 px-2 mb-8">
+          <div class="w-10 h-10 rounded-lg bg-[#00152a] flex items-center justify-center overflow-hidden">
+            <img alt="Sovereign Ledger Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3F-jUbZpehsoYaJP4rlKZzdLfoFZL3OTjst-xNMJEt_IdjMKwrjPyNNu8QmZfLld4v_I_OEZ8cdArTfoHA2Ixunrldv9d0ih3qc2gHLJA2Ue49sZFSYDdHGypx0vQp72tT3mjvgMEbO0AVTGfM8o1z3msJ_IEuUCAxJ8g5qWQx37YJAH2rEvsEOEOwmnwmrEytoxj-Yx3lKftAYUuedamp85hr9Lf77lgahkbYzz4SCe6ki3pgVxKRfnlgDwzVBii6LqXXH5zkTc" />
+          </div>
+          <div>
+            <h2 class="font-bold text-slate-900 leading-tight">Guichet Unique</h2>
+            <p class="text-[10px] text-[#43474d] font-semibold tracking-widest uppercase">Regulatory Supervision</p>
+          </div>
+        </div>
+        <nav class="flex-grow space-y-1">
+          <a routerLink="/dashboard" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
+            <span class="material-symbols-outlined" [class.filled]="isLinkActive('/dashboard')">dashboard</span>
+            Dashboard
+          </a>
+          <a routerLink="/documents" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
+            <span class="material-symbols-outlined" [class.filled]="isLinkActive('/documents')">table_chart</span>
+            Document Catalog
+          </a>
+          <a routerLink="/audit" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
+            <span class="material-symbols-outlined" [class.filled]="isLinkActive('/audit')">history_edu</span>
+            Audit Log
+          </a>
+          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="#">
+            <span class="material-symbols-outlined">api</span>
+            API Documentation
+          </a>
+          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="#">
+            <span class="material-symbols-outlined">settings_input_component</span>
+            System Settings
+          </a>
+        </nav>
+        <button class="mt-4 mx-2 px-4 py-3 bg-[#00152a] text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[0.98] active:scale-95 shadow-lg shadow-primary/20">
+          <span class="material-symbols-outlined text-sm">add</span>
+          New Document
+        </button>
+        <div class="pt-6 border-t border-slate-200 space-y-1">
+          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="#">
+            <span class="material-symbols-outlined">help_outline</span>
+            Support
+          </a>
+          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="#">
+            <span class="material-symbols-outlined">logout</span>
+            Logout
+          </a>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="flex-1 flex flex-col min-w-0">
+        <!-- TopNavBar -->
+        <header class="flex justify-between items-center px-8 py-4 w-full bg-slate-50 sticky top-0 z-50 font-['Inter'] antialiased tracking-tight border-b border-slate-200">
+          <div class="flex items-center gap-6">
+            <h1 class="text-xl font-black tracking-tighter text-slate-900">Sovereign Ledger</h1>
+            <div class="relative hidden sm:block">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                <span class="material-symbols-outlined text-sm">search</span>
+              </span>
+              <input class="bg-[#f0f4f8] border-none rounded-full py-1.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#00152a]/10 w-64 transition-all" placeholder="Search transactions..." type="text"/>
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <button class="p-2 text-slate-500 hover:bg-slate-200/40 rounded-full transition-all">
+              <span class="material-symbols-outlined">notifications</span>
+            </button>
+            <button class="p-2 text-slate-500 hover:bg-slate-200/40 rounded-full transition-all">
+              <span class="material-symbols-outlined">settings</span>
+            </button>
+            <div class="h-8 w-8 rounded-full bg-[#e4e9ed] overflow-hidden cursor-pointer ring-2 ring-offset-2 ring-slate-200">
+              <img alt="Administrator Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxoTUJTkRPs0T-i9WgggXTG7jxDkS0LIiCgfwBi-vge-2KJpVRxMG0ybXohN-BTw7lrQzHkxvfWaQjDhEFfWHOyYybRDhFwFwLBj2XtkDdloLZgyfEJdD934S0qmjzdSPXr88f_hnASuolmCiCFE8plJRnw1KbOekw0_7iCfn8V8jgc4ghGAVPyK1lKDP2YvTi_DhxCCJM5Aa_JW7MhRqd2oHmIxLfepX5TBknFKCFqGhgaUIfnku_-DZtwSeq5Td8Yw7A9sxZjk0" />
+            </div>
+          </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="flex-1 overflow-auto">
+          <router-outlet></router-outlet>
+        </div>
+      </main>
+    </div>
+  `,
+  styles: [`
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1;
+    }
+  `]
 })
 export class LayoutComponent {
   config;
-  constructor(private configService: ConfigService) {
+  constructor(private configService: ConfigService, private router: Router) {
     this.config = this.configService.config;
+  }
+
+  isLinkActive(path: string): boolean {
+    return this.router.url.startsWith(path);
   }
 }
