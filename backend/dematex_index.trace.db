@@ -1,0 +1,60 @@
+2026-04-19 05:27:45.823671Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:28:45.852998Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:29:45.860372Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:30:45.868036Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:31:45.875523Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:32:45.882894Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:33:45.889801Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:34:45.896485Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:35:45.903246Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:36:45.910212Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:37:45.917072Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:38:45.923878Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:39:45.930877Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:40:21.815209Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:40:45.937807Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:41:12.123885Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:41:45.944258Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:42:03.609352Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:42:53.303427Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
+2026-04-19 05:43:03.638175Z jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "DOCUMENTS" not found (this database is empty); SQL statement:
+select d1_0.document_id,d1_0.content,d1_0.created_at,d1_0.entity_code,d1_0.issuer_code,d1_0.period,d1_0.status,d1_0.type,d1_0.updated_at from documents d1_0 [42104-240]
