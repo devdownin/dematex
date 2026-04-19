@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration } from 'chart.js';
@@ -18,6 +18,10 @@ import { DashboardStats } from '../../models/document.model';
           <p class="text-[#43474d] font-medium mt-1">Real-time regulatory status for Fiscal Year 2024</p>
         </div>
         <div class="flex gap-2 bg-[#f0f4f8] p-1 rounded-lg">
+          <div *ngIf="isLive" class="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 text-[10px] font-black uppercase rounded-md border border-green-200">
+            <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            Live
+          </div>
           <button class="px-4 py-1.5 text-xs font-bold bg-white shadow-sm rounded">Daily</button>
           <button class="px-4 py-1.5 text-xs font-semibold text-[#43474d] hover:text-[#171c1f]">Weekly</button>
           <button class="px-4 py-1.5 text-xs font-semibold text-[#43474d] hover:text-[#171c1f]">Monthly</button>
@@ -173,8 +177,10 @@ import { DashboardStats } from '../../models/document.model';
     :host { display: block; }
   `]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   stats?: DashboardStats;
+  isLive = false;
+  private eventSource?: EventSource;
 
   public barChartOptions: ChartConfiguration['options'] = {
     responsive: true,
@@ -187,9 +193,9 @@ export class DashboardComponent implements OnInit {
   };
 
   public barChartData: ChartConfiguration['data'] = {
-    labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+    labels: [],
     datasets: [{
-      data: [40, 55, 45, 70, 65, 80, 95, 85, 90, 100],
+      data: [],
       backgroundColor: 'rgba(16, 42, 67, 0.1)',
       hoverBackgroundColor: 'rgba(16, 42, 67, 0.2)',
       borderRadius: 4
@@ -199,8 +205,44 @@ export class DashboardComponent implements OnInit {
   constructor(private documentService: DocumentService) {}
 
   ngOnInit(): void {
+    this.loadStats();
+    this.loadTrends();
+    this.connectSSE();
+  }
+
+  ngOnDestroy(): void {
+    if (this.eventSource) {
+      this.eventSource.close();
+    }
+  }
+
+  private loadStats(): void {
     this.documentService.getStats().subscribe(s => {
       this.stats = s;
+    });
+  }
+
+  private loadTrends(): void {
+    this.documentService.getLatencyTrends().subscribe(trends => {
+      this.barChartData = {
+        labels: trends.map((t: any) => t.date),
+        datasets: [{
+          data: trends.map((t: any) => t.count),
+          backgroundColor: 'rgba(16, 42, 67, 0.1)',
+          hoverBackgroundColor: 'rgba(16, 42, 67, 0.2)',
+          borderRadius: 4
+        }]
+      };
+    });
+  }
+
+  private connectSSE(): void {
+    this.eventSource = new EventSource('/api/v1/events');
+    this.eventSource.onopen = () => this.isLive = true;
+    this.eventSource.onerror = () => this.isLive = false;
+    this.eventSource.addEventListener('doc-updated', () => {
+      this.loadStats();
+      this.loadTrends();
     });
   }
 }

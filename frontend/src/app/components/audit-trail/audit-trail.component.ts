@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DocumentService } from '../../services/document.service';
 
 @Component({
   selector: 'app-audit-trail',
@@ -65,9 +66,12 @@ import { CommonModule } from '@angular/common';
                     <td class="px-6 py-4">
                       <div class="flex items-center gap-1.5">
                         <div class="w-1.5 h-1.5 rounded-full bg-[#24a375]"></div>
-                        <span class="text-[10px] font-bold text-[#24a375]">VERIFIED</span>
+                        <span class="text-[10px] font-bold text-[#24a375]">{{log.status || 'VERIFIED'}}</span>
                       </div>
                     </td>
+                  </tr>
+                  <tr *ngIf="logs.length === 0">
+                    <td colspan="5" class="px-6 py-10 text-center text-on-surface-variant italic">No activity recorded yet.</td>
                   </tr>
                 </tbody>
               </table>
@@ -83,7 +87,7 @@ import { CommonModule } from '@angular/common';
               <span class="material-symbols-outlined text-tertiary-fixed-dim">shield_check</span>
               <span class="text-xl font-black">Secure</span>
             </div>
-            <p class="text-xs opacity-80 leading-relaxed">No integrity violations detected in the last 720 hours. All hash chains are valid.</p>
+            <p class="text-xs opacity-80 leading-relaxed">No integrity violations detected. All hash chains are valid.</p>
           </div>
 
           <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
@@ -121,13 +125,9 @@ import { CommonModule } from '@angular/common';
   `]
 })
 export class AuditTrailComponent implements OnInit {
-  logs = [
-    { timestamp: new Date(), user: 'admin@dematex.com', action: 'LOGIN', resource: 'SYSTEM_WEB_PORTAL' },
-    { timestamp: new Date(Date.now() - 500000), user: 'admin@dematex.com', action: 'VIEW_DOCUMENT', resource: 'DOC-99283-REF' },
-    { timestamp: new Date(Date.now() - 1000000), user: 'etl_user_prod', action: 'API_SYNC', resource: 'LEDGER_DELTA_SYNC' },
-    { timestamp: new Date(Date.now() - 2000000), user: 'admin@dematex.com', action: 'APPROVE', resource: 'REQ-99250' },
-    { timestamp: new Date(Date.now() - 4000000), user: 'system_auth', action: 'KEY_ROTATE', resource: 'SECURITY_VAULT' }
-  ];
-  constructor() {}
-  ngOnInit(): void {}
+  logs: any[] = [];
+  constructor(private documentService: DocumentService) {}
+  ngOnInit(): void {
+    this.documentService.getAuditLogs().subscribe(l => this.logs = l);
+  }
 }
