@@ -133,8 +133,8 @@ import { DashboardStats } from '../../models/document.model';
           <!-- Efficiency Card -->
           <div class="bg-[#00152a] p-6 rounded-xl text-white">
             <h4 class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">Global Efficiency</h4>
-            <p class="text-3xl font-black mb-4">91.4%</p>
-            <p class="text-xs opacity-80 leading-relaxed mb-6">Your supervision unit is performing 12% above the industry benchmark for regulatory document processing.</p>
+            <p class="text-3xl font-black mb-4">{{ stats?.ar3CompletionRate | number:'1.1-1' }}%</p>
+            <p class="text-xs opacity-80 leading-relaxed mb-6">Your supervision unit is performing at {{ stats?.ar3CompletionRate | number:'1.0-0' }}% AR-3 completion rate, ensuring regulatory compliance.</p>
             <button class="w-full py-3 bg-white/10 hover:bg-white/20 transition-all rounded-lg font-bold text-xs uppercase tracking-widest">Generate Report</button>
           </div>
 

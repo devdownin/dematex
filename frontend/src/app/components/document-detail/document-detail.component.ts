@@ -79,12 +79,12 @@ import { Acknowledgement, DocumentDTO } from '../../models/document.model';
                     <span class="text-xs font-black text-primary">{{doc.period}}</span>
                  </div>
                  <div class="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span class="text-xs font-bold text-on-surface-variant">Submission Window</span>
-                    <span class="text-xs font-black text-primary">J+2 (SLA)</span>
+                    <span class="text-xs font-bold text-on-surface-variant">Deadline</span>
+                    <span class="text-xs font-black text-primary">{{doc.deadline | date:'short'}}</span>
                  </div>
                  <div class="flex justify-between items-center py-2 border-b border-slate-50">
                     <span class="text-xs font-bold text-on-surface-variant">Issuer Authority</span>
-                    <span class="text-xs font-black text-primary">LU-FIN-AUTH</span>
+                    <span class="text-xs font-black text-primary">{{doc.issuerCode}}</span>
                  </div>
               </div>
            </div>
