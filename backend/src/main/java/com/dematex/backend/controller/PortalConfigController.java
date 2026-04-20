@@ -25,6 +25,9 @@ public class PortalConfigController {
     @Value("${portal.support-email:support@dematex.com}")
     private String supportEmail;
 
+    @Value("${portal.entity-code:ENT_ALPHA}")
+    private String entityCode;
+
     @GetMapping
     public PortalConfigDTO getConfig() {
         return PortalConfigDTO.builder()
@@ -32,6 +35,7 @@ public class PortalConfigController {
                 .logoUrl(logoUrl)
                 .primaryColor(primaryColor)
                 .supportEmail(supportEmail)
+                .entityCode(entityCode)
                 .build();
     }
 }

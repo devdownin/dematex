@@ -92,27 +92,15 @@ import { DocumentService } from '../../services/document.service';
 
           <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
             <h4 class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant mb-6">User Access Distribution</h4>
-            <div class="space-y-4">
-              <div class="flex justify-between items-center text-xs">
-                <span class="font-bold">Super Admin</span>
-                <span class="font-black">12%</span>
-              </div>
-              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                <div class="bg-primary h-full" style="width: 12%"></div>
-              </div>
-              <div class="flex justify-between items-center text-xs">
-                <span class="font-bold">Auditor</span>
-                <span class="font-black">34%</span>
-              </div>
-              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                <div class="bg-[#44617d] h-full" style="width: 34%"></div>
-              </div>
-              <div class="flex justify-between items-center text-xs">
-                <span class="font-bold">API / System</span>
-                <span class="font-black">54%</span>
-              </div>
-              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                <div class="bg-[#24a375] h-full" style="width: 54%"></div>
+            <div class="space-y-4" *ngIf="distribution">
+              <div *ngFor="let item of distribution" class="space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                  <span class="font-bold">{{item.label}}</span>
+                  <span class="font-black">{{item.percentage | number:'1.0-0'}}%</span>
+                </div>
+                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div [class]="item.color + ' h-full'" [style.width.%]="item.percentage"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -126,8 +114,31 @@ import { DocumentService } from '../../services/document.service';
 })
 export class AuditTrailComponent implements OnInit {
   logs: any[] = [];
+  distribution: any[] = [];
+
   constructor(private documentService: DocumentService) {}
+
   ngOnInit(): void {
-    this.documentService.getAuditLogs().subscribe(l => this.logs = l);
+    this.documentService.getAuditLogs().subscribe(l => {
+      this.logs = l;
+      this.calculateDistribution();
+    });
+  }
+
+  private calculateDistribution(): void {
+    if (!this.logs.length) return;
+    const counts: { [key: string]: number } = {};
+    this.logs.forEach(log => {
+      const user = log.user || 'Unknown';
+      counts[user] = (counts[user] || 0) + 1;
+    });
+
+    const total = this.logs.length;
+    const colors = ['bg-primary', 'bg-[#44617d]', 'bg-[#24a375]', 'bg-[#ba1a1a]'];
+    this.distribution = Object.keys(counts).map((user, i) => ({
+      label: user,
+      percentage: (counts[user] / total) * 100,
+      color: colors[i % colors.length]
+    })).sort((a, b) => b.percentage - a.percentage);
   }
 }

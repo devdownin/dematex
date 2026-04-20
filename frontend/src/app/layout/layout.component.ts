@@ -12,11 +12,11 @@ import { ConfigService } from '../services/config.service';
       <!-- SideNavBar -->
       <aside class="hidden md:flex flex-col h-screen w-64 bg-slate-100 py-6 px-4 space-y-2 sticky top-0 font-['Inter'] text-sm tracking-wide border-r border-slate-200">
         <div class="flex items-center gap-3 px-2 mb-8">
-          <div class="w-10 h-10 rounded-lg bg-[#00152a] flex items-center justify-center overflow-hidden">
-            <img alt="Sovereign Ledger Logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3F-jUbZpehsoYaJP4rlKZzdLfoFZL3OTjst-xNMJEt_IdjMKwrjPyNNu8QmZfLld4v_I_OEZ8cdArTfoHA2Ixunrldv9d0ih3qc2gHLJA2Ue49sZFSYDdHGypx0vQp72tT3mjvgMEbO0AVTGfM8o1z3msJ_IEuUCAxJ8g5qWQx37YJAH2rEvsEOEOwmnwmrEytoxj-Yx3lKftAYUuedamp85hr9Lf77lgahkbYzz4SCe6ki3pgVxKRfnlgDwzVBii6LqXXH5zkTc" />
+          <div class="w-10 h-10 rounded-lg bg-[#00152a] flex items-center justify-center overflow-hidden" *ngIf="config()?.logoUrl">
+            <img alt="Portal Logo" [src]="config()?.logoUrl" />
           </div>
           <div>
-            <h2 class="font-bold text-slate-900 leading-tight">Guichet Unique</h2>
+            <h2 class="font-bold text-slate-900 leading-tight">{{ config()?.companyName || 'Guichet Unique' }}</h2>
             <p class="text-[10px] text-[#43474d] font-semibold tracking-widest uppercase">Regulatory Supervision</p>
           </div>
         </div>
@@ -63,7 +63,7 @@ import { ConfigService } from '../services/config.service';
         <!-- TopNavBar -->
         <header class="flex justify-between items-center px-8 py-4 w-full bg-slate-50 sticky top-0 z-50 font-['Inter'] antialiased tracking-tight border-b border-slate-200">
           <div class="flex items-center gap-6">
-            <h1 class="text-xl font-black tracking-tighter text-slate-900">Sovereign Ledger</h1>
+            <h1 class="text-xl font-black tracking-tighter text-slate-900">{{ config()?.companyName || 'Sovereign Ledger' }}</h1>
             <div class="relative hidden sm:block">
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                 <span class="material-symbols-outlined text-sm">search</span>

@@ -7,6 +7,7 @@ export interface PortalConfig {
   logoUrl: string;
   primaryColor: string;
   supportEmail: string;
+  entityCode: string;
 }
 
 @Injectable({ providedIn: 'root' })
