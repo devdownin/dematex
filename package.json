@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.60.2",
+    "rollup": "^4.60.2",
+    "vite": "^8.0.9"
+  }
+}

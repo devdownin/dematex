@@ -249,24 +249,43 @@ public class DocumentService {
     }
 
     private Path findFileOnDisk(String documentId) throws IOException {
-        // L'ID contient maintenant recipient_entity_baseName
-        String[] parts = documentId.split("_", 3);
-        if (parts.length < 3) {
-             return Files.walk(Paths.get(storageRoot))
-                .filter(p -> p.getFileName().toString().startsWith(documentId + "."))
-                .findFirst()
-                .orElseThrow(() -> new IOException("Document " + documentId + " introuvable sur le disque"));
+        Document doc = documentRepository.findById(documentId)
+                .orElseThrow(() -> new IOException("Document " + documentId + " introuvable en base"));
+
+        String recipient = doc.getIssuerCode();
+        String entity = doc.getEntityCode();
+        String type = doc.getType().name();
+
+        // Reconstruct the original filename base by stripping the recipient_entity_ prefix from the ID
+        String prefix = recipient + "_" + entity + "_";
+        String baseName = documentId.startsWith(prefix)
+                ? documentId.substring(prefix.length())
+                : documentId;
+
+        // Search in the exact directory: storageRoot/recipient/entity/type/
+        Path targetPath = Paths.get(storageRoot, recipient, entity, type);
+        if (Files.exists(targetPath)) {
+            try (Stream<Path> files = Files.list(targetPath)) {
+                Optional<Path> found = files
+                        .filter(p -> p.getFileName().toString().startsWith(baseName + "."))
+                        .findFirst();
+                if (found.isPresent()) return found.get();
+            }
         }
 
-        String recipient = parts[0];
-        String entity = parts[1];
-        String baseName = parts[2];
+        // Fallback: search in storageRoot/recipient/entity/ (all subdirectories)
+        Path parentPath = Paths.get(storageRoot, recipient, entity);
+        if (Files.exists(parentPath)) {
+            try (Stream<Path> files = Files.walk(parentPath)) {
+                Optional<Path> found = files
+                        .filter(Files::isRegularFile)
+                        .filter(p -> p.getFileName().toString().startsWith(baseName + "."))
+                        .findFirst();
+                if (found.isPresent()) return found.get();
+            }
+        }
 
-        Path targetPath = Paths.get(storageRoot, recipient, entity);
-        return Files.walk(targetPath)
-                .filter(p -> p.getFileName().toString().startsWith(baseName + "."))
-                .findFirst()
-                .orElseThrow(() -> new IOException("Document " + documentId + " introuvable sur le disque"));
+        throw new IOException("Document " + documentId + " introuvable sur le disque");
     }
 
     /**

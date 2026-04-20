@@ -33,7 +33,7 @@ import { ConfigService } from '../services/config.service';
             <span class="material-symbols-outlined" [class.filled]="isLinkActive('/audit')">history_edu</span>
             Audit Log
           </a>
-          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="#">
+          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="/swagger-ui/index.html" target="_blank">
             <span class="material-symbols-outlined">api</span>
             API Documentation
           </a>
