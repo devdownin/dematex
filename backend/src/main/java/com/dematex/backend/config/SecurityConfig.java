@@ -28,7 +28,7 @@ public class SecurityConfig {
                 .permissionsPolicy(permissions -> permissions.policy("geolocation=(), microphone=(), camera=()"))
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/**").permitAll() // Production would use OAuth2/JWT
+                .requestMatchers("/api/**").permitAll() // Production would use OAuth2/JWT
                 .requestMatchers("/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             );

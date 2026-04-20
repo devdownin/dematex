@@ -9,4 +9,5 @@ public class PortalConfigDTO {
     private String logoUrl;
     private String primaryColor;
     private String supportEmail;
+    private String entityCode;
 }

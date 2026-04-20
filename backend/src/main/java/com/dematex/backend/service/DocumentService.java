@@ -13,8 +13,13 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -135,19 +140,35 @@ public class DocumentService {
 
     /**
      * Tâche synchronisant l'index JPA avec l'état réel du filesystem.
-     * S'exécute au démarrage de l'application et toutes les minutes.
+     * S'exécute au démarrage de l'application (initialDelay=5000 pour éviter race condition avec flyway/hibernate)
+     * et toutes les minutes.
      */
-    @EventListener(ApplicationReadyEvent.class)
-    @Scheduled(fixedDelay = 60000)
+    @Scheduled(initialDelay = 5000, fixedDelay = 60000)
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = "stats", allEntries = true)
     public void syncFileSystemToIndex() {
         log.info("Démarrage de la synchronisation filesystem -> index...");
-        List<Document> onDisk = scanFileSystem();
+        Collection<Document> onDisk = scanFileSystem();
+        Map<String, Document> onDiskMap = onDisk.stream()
+                .collect(Collectors.toMap(Document::getDocumentId, d -> d));
 
-        // Rafraîchissement complet de l'index pour garantir la cohérence
-        documentRepository.deleteAll();
-        documentRepository.saveAll(onDisk);
+        List<Document> inDb = documentRepository.findAll();
+        Set<String> inDbIds = inDb.stream().map(Document::getDocumentId).collect(Collectors.toSet());
+
+        // Update or Add
+        List<Document> toSave = new ArrayList<>();
+        for (Document diskDoc : onDisk) {
+            toSave.add(diskDoc);
+        }
+        documentRepository.saveAll(toSave);
+
+        // Delete
+        List<String> toDelete = inDbIds.stream()
+                .filter(id -> !onDiskMap.containsKey(id))
+                .collect(Collectors.toList());
+        if (!toDelete.isEmpty()) {
+            documentRepository.deleteAllById(toDelete);
+        }
 
         log.info("Synchronisation terminée. {} documents indexés.", onDisk.size());
     }
@@ -155,10 +176,10 @@ public class DocumentService {
     /**
      * Scanne récursivement la structure : storage_root/{issuer}/{entity}/{type}/file
      */
-    private List<Document> scanFileSystem() {
-        List<Document> docs = new ArrayList<>();
+    private Collection<Document> scanFileSystem() {
+        Map<String, Document> docs = new HashMap<>();
         Path root = Paths.get(storageRoot).toAbsolutePath();
-        if (!Files.exists(root)) return docs;
+        if (!Files.exists(root)) return docs.values();
 
         try (Stream<Path> recipients = Files.list(root)) {
             recipients.filter(Files::isDirectory).forEach(recPath -> {
@@ -171,7 +192,9 @@ public class DocumentService {
                                 String typeStr = typePath.getFileName().toString();
                                 try (Stream<Path> files = Files.list(typePath)) {
                                     files.filter(Files::isRegularFile).forEach(filePath -> {
-                                        docs.add(mapFileToEntity(recipient, entity, typeStr, filePath));
+                                        Document doc = mapFileToEntity(recipient, entity, typeStr, filePath);
+                                        // Prioritize the latest status if duplicate ID found (unlikely but safe)
+                                        docs.put(doc.getDocumentId(), doc);
                                     });
                                 } catch (IOException ignored) {}
                             });
@@ -182,7 +205,7 @@ public class DocumentService {
         } catch (IOException e) {
             log.error("Erreur lors du scan du filesystem", e);
         }
-        return docs;
+        return docs.values();
     }
 
     /**
@@ -194,8 +217,12 @@ public class DocumentService {
         String docId = filename.substring(0, lastDot);
         String ext = filename.substring(lastDot + 1);
 
+        // Garantir l'unicité de documentId à travers toutes les entités si nécessaire,
+        // ou inclure entity/issuer dans l'ID pour éviter les collisions.
+        String uniqueDocId = recipient + "_" + entity + "_" + docId;
+
         Document doc = new Document();
-        doc.setDocumentId(docId);
+        doc.setDocumentId(uniqueDocId);
         doc.setEntityCode(entity);
         doc.setIssuerCode(recipient);
         try { doc.setType(DocumentType.valueOf(typeStr)); } catch (Exception e) { doc.setType(DocumentType.REFERENTIEL); }
@@ -210,20 +237,41 @@ public class DocumentService {
         // Date de création basée sur la date système du fichier
         try { doc.setCreatedAt(Files.getLastModifiedTime(filePath).toInstant()); } catch (IOException e) { doc.setCreatedAt(Instant.now()); }
         doc.setUpdatedAt(doc.getCreatedAt());
-        doc.setPeriod("2024-01"); // Exemple statique
+
+        // Extraction de la période depuis le nom du fichier (format attendu: doc_YYYYMM_...)
+        String period = "2024-01";
+        if (filename.startsWith("doc_") && filename.length() >= 10) {
+            String yyyymm = filename.substring(4, 10);
+            period = yyyymm.substring(0, 4) + "-" + yyyymm.substring(4, 6);
+        }
+        doc.setPeriod(period);
         return doc;
     }
 
     private Path findFileOnDisk(String documentId) throws IOException {
-        return Files.walk(Paths.get(storageRoot))
+        // L'ID contient maintenant recipient_entity_baseName
+        String[] parts = documentId.split("_", 3);
+        if (parts.length < 3) {
+             return Files.walk(Paths.get(storageRoot))
                 .filter(p -> p.getFileName().toString().startsWith(documentId + "."))
+                .findFirst()
+                .orElseThrow(() -> new IOException("Document " + documentId + " introuvable sur le disque"));
+        }
+
+        String recipient = parts[0];
+        String entity = parts[1];
+        String baseName = parts[2];
+
+        Path targetPath = Paths.get(storageRoot, recipient, entity);
+        return Files.walk(targetPath)
+                .filter(p -> p.getFileName().toString().startsWith(baseName + "."))
                 .findFirst()
                 .orElseThrow(() -> new IOException("Document " + documentId + " introuvable sur le disque"));
     }
 
     /**
      * Convertit une entité persistante en objet de transfert (DTO) pour le frontend.
-     * Inclut le calcul dynamique de la deadline SLA.
+     * Inclut le calcul dynamique de la deadline SLA et le hash cryptographique.
      */
     private DocumentDTO convertToDTO(Document doc) {
         DocumentDTO dto = new DocumentDTO();
@@ -241,7 +289,35 @@ public class DocumentService {
         dto.setDeadline(deadline);
         dto.setLate(doc.getStatus() != AcknowledgementType.AR3 && Instant.now().isAfter(deadline));
 
+        // Calcul du hash pour l'intégrité
+        try {
+            Path path = findFileOnDisk(doc.getDocumentId());
+            dto.setHash(calculateSHA256(path));
+        } catch (Exception e) {
+            log.warn("Impossible de calculer le hash pour {}", doc.getDocumentId());
+        }
+
         return dto;
+    }
+
+    private String calculateSHA256(Path path) throws NoSuchAlgorithmException, IOException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        try (InputStream is = Files.newInputStream(path);
+             BufferedInputStream bis = new BufferedInputStream(is);
+             DigestInputStream dis = new DigestInputStream(bis, digest)) {
+            byte[] buffer = new byte[8192];
+            while (dis.read(buffer) != -1) {
+                // Digest is updated internally
+            }
+        }
+        byte[] encodedHash = digest.digest();
+        StringBuilder hexString = new StringBuilder(2 * encodedHash.length);
+        for (byte b : encodedHash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     public List<Acknowledgement> getAcknowledgements(String documentId) {

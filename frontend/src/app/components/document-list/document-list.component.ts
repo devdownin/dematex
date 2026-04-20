@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DocumentService } from '../../services/document.service';
+import { ConfigService } from '../../services/config.service';
 import { DocumentDTO, DashboardStats } from '../../models/document.model';
 
 @Component({
@@ -191,7 +192,7 @@ export class DocumentListComponent implements OnInit {
     limit: 15
   };
 
-  constructor(private documentService: DocumentService) {}
+  constructor(private documentService: DocumentService, private configService: ConfigService) {}
 
   ngOnInit(): void {
     this.loadDocuments();
@@ -199,7 +200,8 @@ export class DocumentListComponent implements OnInit {
   }
 
   loadDocuments(): void {
-    this.documentService.getDocuments('ENT_ALPHA', this.filters).subscribe(res => this.documents = res.items);
+    const entityCode = this.configService.config()?.entityCode || 'ENT_ALPHA';
+    this.documentService.getDocuments(entityCode, this.filters).subscribe(res => this.documents = res.items);
   }
 
   applyFilters(): void {

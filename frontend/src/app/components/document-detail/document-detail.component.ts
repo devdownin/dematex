@@ -91,8 +91,8 @@ import { Acknowledgement, DocumentDTO } from '../../models/document.model';
 
            <div class="bg-[#102a43] p-6 rounded-xl text-white">
               <h4 class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">Cryptographic Proof</h4>
-              <div class="p-3 bg-white/5 rounded-lg font-mono text-[9px] break-all opacity-80 mb-4">
-                SHA256: 4f98a2d1e5b7c3f9a8d2e1b5c7f3a9d8e2b1c5f7a9d3e1b5c7f9a8d2e1b5c7f3
+              <div class="p-3 bg-white/5 rounded-lg font-mono text-[9px] break-all opacity-80 mb-4" *ngIf="doc.hash">
+                SHA256: {{doc.hash}}
               </div>
               <div class="flex items-center gap-2">
                  <span class="material-symbols-outlined text-[#68dba9] text-sm">verified</span>

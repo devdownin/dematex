@@ -222,6 +222,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  private loadTrends(): void {
+    this.documentService.getLatencyTrends().subscribe(trends => {
+      this.barChartData.labels = trends.map(t => t.date);
+      this.barChartData.datasets[0].data = trends.map(t => t.count);
+    });
+  }
+
   private connectSSE(): void {
     this.eventSource = new EventSource('/api/v1/events');
     this.eventSource.onopen = () => this.isLive = true;

@@ -15,4 +15,5 @@ public class DocumentDTO {
     private Instant updatedAt;
     private Instant deadline;
     private boolean isLate;
+    private String hash;
 }
