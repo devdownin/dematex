@@ -75,6 +75,10 @@ public class DocumentController {
 
     @GetMapping("/documents/{documentId}/download-link")
     public SignedDownloadLinkDTO getSignedDownloadLink(@PathVariable String documentId) {
+        DocumentDTO doc = documentService.getDocumentOrThrow(documentId);
+        securityUtils.checkEntityAccess(doc.getEntityCode());
+        securityUtils.checkIssuerAccess(doc.getIssuerCode());
+
         Instant expiresAt = signedDownloadService.computeExpiry();
         String signature = signedDownloadService.sign(documentId, expiresAt);
         String url = "/api/v1/documents/" + documentId + "/content?expiresAt=" + expiresAt.getEpochSecond() + "&signature=" + signature;
@@ -117,6 +121,10 @@ public class DocumentController {
 
     @GetMapping("/documents/{documentId}/acknowledgements")
     public List<Acknowledgement> getAcknowledgements(@PathVariable String documentId) {
+        DocumentDTO doc = documentService.getDocumentOrThrow(documentId);
+        securityUtils.checkEntityAccess(doc.getEntityCode());
+        securityUtils.checkIssuerAccess(doc.getIssuerCode());
+
         return documentService.getAcknowledgements(documentId);
     }
 

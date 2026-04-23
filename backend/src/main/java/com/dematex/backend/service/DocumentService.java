@@ -11,6 +11,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -154,6 +156,21 @@ public class DocumentService {
 
     public Optional<DocumentDTO> getDocument(String documentId) {
         return documentRepository.findById(documentId).map(this::convertToDTO);
+    }
+
+    /**
+     * Retourne une ressource permettant le streaming d'un document directement depuis le disque.
+     */
+    public Resource getFileAsResource(String documentId) {
+        try {
+            Path filePath = findFileOnDisk(documentId);
+            if (!Files.exists(filePath)) {
+                throw new ResourceNotFoundException("Fichier non trouvé sur le disque pour " + documentId);
+            }
+            return new FileSystemResource(filePath);
+        } catch (IOException e) {
+            throw new StorageException("Impossible d'accéder au fichier pour " + documentId, e);
+        }
     }
 
     /**
