@@ -5,6 +5,7 @@ import com.dematex.backend.model.*;
 import com.dematex.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -70,9 +71,10 @@ public class DocumentService {
                 documentRepository.delete(doc);
                 
                 auditLogRepository.save(AuditLog.builder()
-                        .user("system_user")
+                        .user("system")
                         .action("PURGE_DOCUMENT")
                         .resource(doc.getDocumentId())
+                        .issuerCode(doc.getIssuerCode())
                         .status("EXPIRED")
                         .build());
                 
@@ -155,12 +157,15 @@ public class DocumentService {
 
     @Transactional
     public void recordDocumentDownload(String documentId) {
-        auditLogRepository.save(AuditLog.builder()
-                .user("system_user")
-                .action("DOWNLOAD_DOCUMENT")
-                .resource(documentId)
-                .status("SIGNED_URL")
-                .build());
+        documentRepository.findById(documentId).ifPresent(doc -> {
+            auditLogRepository.save(AuditLog.builder()
+                    .user(getCurrentUsername())
+                    .action("DOWNLOAD_DOCUMENT")
+                    .resource(documentId)
+                    .issuerCode(doc.getIssuerCode())
+                    .status("SIGNED_URL")
+                    .build());
+        });
     }
 
     /**
@@ -192,9 +197,10 @@ public class DocumentService {
                 .build());
 
         auditLogRepository.save(AuditLog.builder()
-                .user("system_user") // En production, utiliser SecurityContext
+                .user(getCurrentUsername())
                 .action("ACK_UPDATE")
                 .resource(documentId)
+                .issuerCode(doc.getIssuerCode())
                 .status(type.name())
                 .build());
 
@@ -240,6 +246,7 @@ public class DocumentService {
                         .action("RECEIVE_DOCUMENT")
                         .resource(diskDoc.getType().name())
                         .documentId(diskDoc.getDocumentId())
+                        .issuerCode(diskDoc.getIssuerCode())
                         .status("RECEIVED")
                         .build());
                 log.info("Nouveau document détecté : {}", diskDoc.getDocumentId());
@@ -433,8 +440,11 @@ public class DocumentService {
         return acknowledgementRepository.findByDocumentIdOrderByTimestampAsc(documentId);
     }
 
-    public List<AuditLog> getAuditLogs() {
-        return auditLogRepository.findAllByOrderByTimestampDesc();
+    public List<AuditLog> getAuditLogs(String issuerCode) {
+        if (issuerCode == null) {
+            return auditLogRepository.findAllByOrderByTimestampDesc();
+        }
+        return auditLogRepository.findByIssuerCodeOrderByTimestampDesc(issuerCode);
     }
 
     public byte[] exportDocumentsCsv(String entityCode, String issuerCode, DocumentType type, ClientType clientType, String periodStart, String periodEnd, AcknowledgementType status, String search, Boolean lateOnly) {
@@ -475,31 +485,34 @@ public class DocumentService {
         }
 
         auditLogRepository.save(AuditLog.builder()
-                .user("system_user")
+                .user(getCurrentUsername())
                 .action("EXPORT_DOCUMENTS")
                 .resource(entityCode != null ? entityCode : "GLOBAL")
+                .issuerCode(issuerCode)
                 .status("CSV")
                 .build());
 
         return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    public byte[] exportAuditCsv() {
-        List<AuditLog> logs = auditLogRepository.findAllByOrderByTimestampDesc();
-        StringBuilder csv = new StringBuilder("timestamp,user,action,resource,status\n");
+    public byte[] exportAuditCsv(String issuerCode) {
+        List<AuditLog> logs = getAuditLogs(issuerCode);
+        StringBuilder csv = new StringBuilder("timestamp,user,action,resource,issuerCode,status\n");
         for (AuditLog log : logs) {
             csv.append(csv(log.getTimestamp())).append(',')
                     .append(csv(log.getUser())).append(',')
                     .append(csv(log.getAction())).append(',')
                     .append(csv(log.getResource())).append(',')
+                    .append(csv(log.getIssuerCode())).append(',')
                     .append(csv(log.getStatus()))
                     .append('\n');
         }
 
         auditLogRepository.save(AuditLog.builder()
-                .user("system_user")
+                .user(getCurrentUsername())
                 .action("EXPORT_AUDIT")
                 .resource("AUDIT_LOG")
+                .issuerCode(issuerCode)
                 .status("CSV")
                 .build());
 
@@ -552,6 +565,14 @@ public class DocumentService {
     private ClientType inferClientType(String stableKey) {
         ClientType[] values = ClientType.values();
         return values[Math.floorMod(stableKey.hashCode(), values.length)];
+    }
+
+    private String getCurrentUsername() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof User) {
+            return ((User) principal).getUsername();
+        }
+        return "system";
     }
 
     private String csv(Object value) {

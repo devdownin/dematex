@@ -9,6 +9,7 @@ import java.util.Optional;
 
 public interface AlertRepository extends JpaRepository<Alert, Long> {
     List<Alert> findByResolvedAtIsNullOrderByDetectedAtDesc();
+    List<Alert> findByIssuerCodeAndResolvedAtIsNullOrderByDetectedAtDesc(String issuerCode);
 
     Optional<Alert> findByFingerprint(String fingerprint);
 

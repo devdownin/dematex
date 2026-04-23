@@ -38,12 +38,15 @@ public class AlertService {
     private final ValidationService validationService;
     private final StorageService storageService;
 
-    public List<Alert> getActiveAlerts() {
-        return alertRepository.findByResolvedAtIsNullOrderByDetectedAtDesc();
+    public List<Alert> getActiveAlerts(String issuerCode) {
+        if (issuerCode == null) {
+            return alertRepository.findByResolvedAtIsNullOrderByDetectedAtDesc();
+        }
+        return alertRepository.findByIssuerCodeAndResolvedAtIsNullOrderByDetectedAtDesc(issuerCode);
     }
 
-    public AlertSummary getSummary() {
-        List<Alert> activeAlerts = getActiveAlerts();
+    public AlertSummary getSummary(String issuerCode) {
+        List<Alert> activeAlerts = getActiveAlerts(issuerCode);
         return AlertSummary.builder()
                 .activeAlerts(activeAlerts.size())
                 .documentAlerts(activeAlerts.stream().filter(alert -> alert.getDocumentId() != null).count())
@@ -232,6 +235,7 @@ public class AlertService {
                         .action("DETECT_ALARM")
                         .resource(detected.getType().name())
                         .documentId(detected.getDocumentId())
+                        .issuerCode(detected.getIssuerCode())
                         .status("ACTIVE")
                         .build());
             }
@@ -246,6 +250,7 @@ public class AlertService {
                         .action("RESOLVE_ALARM")
                         .resource(existing.getType().name())
                         .documentId(existing.getDocumentId())
+                        .issuerCode(existing.getIssuerCode())
                         .status("RESOLVED")
                         .build());
             }

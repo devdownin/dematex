@@ -38,9 +38,13 @@
     "@angular/cli": "^21.2.7",
     "@angular/compiler-cli": "^21.2.9",
     "@playwright/test": "^1.59.1",
+    "@rolldown/binding-linux-x64-gnu": "^1.0.0-rc.17",
+    "@rollup/rollup-linux-x64-gnu": "^4.60.2",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.2.4",
     "@tailwindcss/postcss": "^4.2.2",
     "autoprefixer": "^10.5.0",
     "jsdom": "^28.0.0",
+    "lightningcss-linux-x64-gnu": "^1.32.0",
     "postcss": "^8.5.10",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.2.2",
@@ -49,6 +53,7 @@
   },
   "optionalDependencies": {
     "@tailwindcss/oxide-win32-x64-msvc": "^4.2.4",
+    "lightningcss-linux-x64-gnu": "^1.32.0",
     "lightningcss-win32-x64-msvc": "^1.32.0"
   }
 }

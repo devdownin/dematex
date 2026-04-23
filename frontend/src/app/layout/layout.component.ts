@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { ConfigService } from '../services/config.service';
+import { AuthService } from '../services/auth.service';
 import { TranslationService } from '../services/translation.service';
 
 @Component({
@@ -39,11 +40,11 @@ import { TranslationService } from '../services/translation.service';
             <span class="material-symbols-outlined" [class.filled]="isLinkActive('/audit')">history_edu</span>
             {{ t('nav.audit') }}
           </a>
-          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="/swagger-ui/index.html" target="_blank">
+          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="/swagger-ui/index.html" target="_blank" *ngIf="isAdmin()">
             <span class="material-symbols-outlined">api</span>
             {{ t('nav.api') }}
           </a>
-          <a routerLink="/settings" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
+          <a routerLink="/settings" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" *ngIf="isAdmin()">
             <span class="material-symbols-outlined" [class.filled]="isLinkActive('/settings')">settings_input_component</span>
             {{ t('nav.settings') }}
           </a>
@@ -92,11 +93,14 @@ import { TranslationService } from '../services/translation.service';
             <button class="p-2 text-slate-500 hover:bg-slate-200/40 rounded-full transition-all">
               <span class="material-symbols-outlined">notifications</span>
             </button>
-            <button class="p-2 text-slate-500 hover:bg-slate-200/40 rounded-full transition-all">
-              <span class="material-symbols-outlined">settings</span>
-            </button>
-            <div class="h-8 w-8 rounded-full bg-[#e4e9ed] overflow-hidden cursor-pointer ring-2 ring-offset-2 ring-slate-200">
-              <img alt="Administrator Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxoTUJTkRPs0T-i9WgggXTG7jxDkS0LIiCgfwBi-vge-2KJpVRxMG0ybXohN-BTw7lrQzHkxvfWaQjDhEFfWHOyYybRDhFwFwLBj2XtkDdloLZgyfEJdD934S0qmjzdSPXr88f_hnASuolmCiCFE8plJRnw1KbOekw0_7iCfn8V8jgc4ghGAVPyK1lKDP2YvTi_DhxCCJM5Aa_JW7MhRqd2oHmIxLfepX5TBknFKCFqGhgaUIfnku_-DZtwSeq5Td8Yw7A9sxZjk0" />
+            <div class="flex items-center gap-3 ml-2">
+              <div class="hidden lg:block text-right">
+                <p class="text-[11px] font-bold text-slate-900 leading-none">{{ user()?.fullName }}</p>
+                <p class="text-[9px] text-slate-500 font-medium uppercase tracking-wider">{{ user()?.role }}</p>
+              </div>
+              <div class="h-8 w-8 rounded-full bg-[#e4e9ed] overflow-hidden cursor-pointer ring-2 ring-offset-2 ring-slate-200">
+                <img alt="User Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxoTUJTkRPs0T-i9WgggXTG7jxDkS0LIiCgfwBi-vge-2KJpVRxMG0ybXohN-BTw7lrQzHkxvfWaQjDhEFfWHOyYybRDhFwFwLBj2XtkDdloLZgyfEJdD934S0qmjzdSPXr88f_hnASuolmCiCFE8plJRnw1KbOekw0_7iCfn8V8jgc4ghGAVPyK1lKDP2YvTi_DhxCCJM5Aa_JW7MhRqd2oHmIxLfepX5TBknFKCFqGhgaUIfnku_-DZtwSeq5Td8Yw7A9sxZjk0" />
+              </div>
             </div>
           </div>
         </header>
@@ -117,15 +121,22 @@ import { TranslationService } from '../services/translation.service';
 export class LayoutComponent {
   config;
   currentLang;
+  user;
   searchQuery = '';
 
   constructor(
     private configService: ConfigService,
+    private authService: AuthService,
     private translationService: TranslationService,
     private router: Router
   ) {
     this.config = this.configService.config;
+    this.user = this.authService.user;
     this.currentLang = this.translationService.lang;
+  }
+
+  isAdmin(): boolean {
+    return this.user()?.role === 'ROLE_ADMIN';
   }
 
   t(key: string): string {

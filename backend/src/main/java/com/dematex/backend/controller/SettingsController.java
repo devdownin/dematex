@@ -1,5 +1,6 @@
 package com.dematex.backend.controller;
 
+import com.dematex.backend.config.SecurityUtils;
 import com.dematex.backend.service.DocumentService;
 import com.dematex.backend.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,11 +20,12 @@ public class SettingsController {
 
     private final StorageService storageService;
     private final DocumentService documentService;
+    private final SecurityUtils securityUtils;
 
     @Operation(summary = "Structure de stockage actuelle", description = "Retourne l'arborescence des répertoires et la liste des fichiers avec leurs métadonnées")
     @GetMapping("/storage/structure")
     public ResponseEntity<Map<String, Object>> getStorageStructure() {
-        return ResponseEntity.ok(storageService.getStructure());
+        return ResponseEntity.ok(storageService.getStructure(securityUtils.getEffectiveIssuer()));
     }
 
     @Operation(summary = "Renommer un fichier", description = "Renomme un fichier (nom et/ou extension). Déclenche automatiquement la mise à jour de l'index H2.")

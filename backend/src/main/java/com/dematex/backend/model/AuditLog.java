@@ -11,6 +11,7 @@ public class AuditLog {
     private String action;
     private String resource;
     private String documentId;
+    private String issuerCode;
     private String status;
     @PrePersist protected void onCreate() { timestamp = Instant.now(); }
 }
