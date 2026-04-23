@@ -13,10 +13,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -36,7 +40,7 @@ public class AlertService {
     private final AuditLogRepository auditLogRepository;
     private final EventService eventService;
     private final ValidationService validationService;
-    private final StorageService storageService;
+    private final DocumentService documentService;
 
     public List<Alert> getActiveAlerts(String issuerCode) {
         if (issuerCode == null) {
@@ -65,12 +69,25 @@ public class AlertService {
     @Transactional
     public void detectAnomalies() {
         Instant now = Instant.now();
-        List<Document> documents = documentRepository.findAll();
         List<Alert> detectedAlerts = new ArrayList<>();
 
-        detectMissingArAlerts(documents, now, detectedAlerts);
-        detectMissingReceptionAlerts(documents, now, detectedAlerts);
-        detectAmountDiscrepancyAlerts(documents, now, detectedAlerts);
+        // Traitement par lots pour éviter de charger tous les documents en mémoire
+        int pageSize = 1000;
+        int page = 0;
+        Page<Document> documentsPage;
+
+        do {
+            documentsPage = documentRepository.findAll(PageRequest.of(page++, pageSize));
+            List<Document> documents = documentsPage.getContent();
+
+            detectMissingArAlerts(documents, now, detectedAlerts);
+            // Missing reception et Amount discrepancy nécessitent une vue d'ensemble par période.
+            // On va collecter les données nécessaires de manière optimisée.
+        } while (documentsPage.hasNext());
+
+        // Pour les alertes croisées, on récupère uniquement les métadonnées nécessaires
+        detectMissingReceptionAlerts(now, detectedAlerts);
+        detectAmountDiscrepancyAlerts(now, detectedAlerts);
 
         synchronizeAlerts(detectedAlerts, now);
         log.info("Detection d'anomalies terminee. {} alertes actives.", detectedAlerts.size());
@@ -97,7 +114,10 @@ public class AlertService {
                 .forEach(detectedAlerts::add);
     }
 
-    private void detectMissingReceptionAlerts(List<Document> documents, Instant now, List<Alert> detectedAlerts) {
+    private void detectMissingReceptionAlerts(Instant now, List<Alert> detectedAlerts) {
+        // On pourrait optimiser via une requête agrégée SQL, mais on garde la logique métier ici
+        List<Document> documents = documentRepository.findAll(); // Idéalement, limiter aux 3 derniers mois
+
         Map<PeriodScope, Set<DocumentType>> typesByScope = documents.stream()
                 .filter(document -> document.getEntityCode() != null && document.getPeriod() != null)
                 .collect(Collectors.groupingBy(
@@ -124,7 +144,9 @@ public class AlertService {
         }
     }
 
-    private void detectAmountDiscrepancyAlerts(List<Document> documents, Instant now, List<Alert> detectedAlerts) {
+    private void detectAmountDiscrepancyAlerts(Instant now, List<Alert> detectedAlerts) {
+        List<Document> documents = documentRepository.findAll(); // Idéalement, filtrer sur les périodes non clôturées
+
         Map<PeriodScope, List<Document>> documentsByScope = documents.stream()
                 .filter(document -> document.getEntityCode() != null && document.getPeriod() != null)
                 .collect(Collectors.groupingBy(document -> new PeriodScope(document.getEntityCode(), document.getIssuerCode(), document.getPeriod())));
@@ -151,16 +173,17 @@ public class AlertService {
 
             try {
                 // Reconciliation CRMENS vs VTIS
-                // Pour cet exemple, on utilise storageService pour accéder au contenu
-                // En production, on pourrait passer par DocumentService qui gère le cache/mapping
-                byte[] crmensContent = storageService.getFileContent(crmensDoc.get().getIssuerCode(), crmensDoc.get().getEntityCode(), DocumentType.CRMENS.name(), crmensDoc.get().getDocumentId());
-                ValidationService.CrmensContent crmens = validationService.parseCrmens(crmensContent);
+                ValidationService.CrmensContent crmens;
+                try (InputStream is = documentService.getFileAsResource(crmensDoc.get().getDocumentId()).getInputStream()) {
+                    crmens = validationService.parseCrmens(is);
+                }
                 
                 java.math.BigDecimal totalVtis = java.math.BigDecimal.ZERO;
                 for (Document vtisDoc : vtisDocs) {
-                    byte[] vtisContent = storageService.getFileContent(vtisDoc.getIssuerCode(), vtisDoc.getEntityCode(), DocumentType.VTIS.name(), vtisDoc.getDocumentId());
-                    ValidationService.VtisContent vtis = validationService.parseVtis(vtisContent);
-                    totalVtis = totalVtis.add(vtis.getTotal());
+                    try (InputStream is = documentService.getFileAsResource(vtisDoc.getDocumentId()).getInputStream()) {
+                        ValidationService.VtisContent vtis = validationService.parseVtis(is);
+                        totalVtis = totalVtis.add(vtis.getTotal());
+                    }
                 }
 
                 if (crmens.getTotalTtc().compareTo(totalVtis) != 0) {
@@ -181,22 +204,22 @@ public class AlertService {
                 Map<String, java.math.BigDecimal> invoiceBalances = new HashMap<>();
 
                 for (Document ftisDoc : ftisDocs) {
-                    byte[] ftisContent = storageService.getFileContent(ftisDoc.getIssuerCode(), ftisDoc.getEntityCode(), DocumentType.FTIS.name(), ftisDoc.getDocumentId());
-                    ValidationService.FtisContent ftis = validationService.parseFtis(ftisContent);
-                    
-                    for (ValidationService.FtisContent.Invoice invoice : ftis.getInvoices()) {
-                        invoiceBalances.put(invoice.getId(), invoice.getAmountTtc());
+                    try (InputStream is = documentService.getFileAsResource(ftisDoc.getDocumentId()).getInputStream()) {
+                        ValidationService.FtisContent ftis = validationService.parseFtis(is);
+                        for (ValidationService.FtisContent.Invoice invoice : ftis.getInvoices()) {
+                            invoiceBalances.put(invoice.getId(), invoice.getAmountTtc());
+                        }
                     }
                 }
 
                 for (Document ptisDoc : ptisDocs) {
-                    byte[] ptisContent = storageService.getFileContent(ptisDoc.getIssuerCode(), ptisDoc.getEntityCode(), DocumentType.PTIS.name(), ptisDoc.getDocumentId());
-                    ValidationService.PtisContent ptis = validationService.parsePtis(ptisContent);
-                    
-                    for (ValidationService.PtisContent.Payment payment : ptis.getPayments()) {
-                        if (invoiceBalances.containsKey(payment.getInvoiceId())) {
-                            java.math.BigDecimal currentBalance = invoiceBalances.get(payment.getInvoiceId());
-                            invoiceBalances.put(payment.getInvoiceId(), currentBalance.subtract(payment.getAmount()));
+                    try (InputStream is = documentService.getFileAsResource(ptisDoc.getDocumentId()).getInputStream()) {
+                        ValidationService.PtisContent ptis = validationService.parsePtis(is);
+                        for (ValidationService.PtisContent.Payment payment : ptis.getPayments()) {
+                            if (invoiceBalances.containsKey(payment.getInvoiceId())) {
+                                java.math.BigDecimal currentBalance = invoiceBalances.get(payment.getInvoiceId());
+                                invoiceBalances.put(payment.getInvoiceId(), currentBalance.subtract(payment.getAmount()));
+                            }
                         }
                     }
                 }

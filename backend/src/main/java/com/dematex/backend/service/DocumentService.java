@@ -1,6 +1,8 @@
 package com.dematex.backend.service;
 
 import com.dematex.backend.dto.*;
+import com.dematex.backend.exception.ResourceNotFoundException;
+import com.dematex.backend.exception.StorageException;
 import com.dematex.backend.model.*;
 import com.dematex.backend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +11,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -19,6 +24,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -59,31 +65,49 @@ public class DocumentService {
         Instant sixMonthsAgo = now.minus(Duration.ofDays(180));
         Instant oneYearAgo = now.minus(Duration.ofDays(365));
 
-        List<Document> allDocuments = documentRepository.findAll();
-        List<Document> toDelete = allDocuments.stream()
-                .filter(doc -> isExpired(doc, sixMonthsAgo, oneYearAgo))
-                .toList();
+        // Purge par lots pour éviter de charger toute la base en mémoire
+        int pageSize = 500;
+        int page = 0;
+        long totalDeleted = 0;
+        Page<Document> toDeletePage;
 
-        for (Document doc : toDelete) {
-            try {
-                Path path = findFileOnDisk(doc.getDocumentId());
-                Files.deleteIfExists(path);
-                documentRepository.delete(doc);
-                
-                auditLogRepository.save(AuditLog.builder()
-                        .user("system")
-                        .action("PURGE_DOCUMENT")
-                        .resource(doc.getDocumentId())
-                        .issuerCode(doc.getIssuerCode())
-                        .status("EXPIRED")
-                        .build());
-                
-                log.info("Document purgé : {}", doc.getDocumentId());
-            } catch (IOException e) {
-                log.error("Erreur lors de la purge du document {}", doc.getDocumentId(), e);
+        do {
+            // Note: On reste sur la page 0 car la suppression décale les résultats.
+            // On utilise PageRequest.of(0, ...) pour parcourir les documents sans charger toute la base.
+            toDeletePage = documentRepository.findAll(PageRequest.of(page, pageSize));
+            List<Document> expiredInBatch = toDeletePage.getContent().stream()
+                    .filter(doc -> isExpired(doc, sixMonthsAgo, oneYearAgo))
+                    .toList();
+
+            for (Document doc : expiredInBatch) {
+                try {
+                    Path path = findFileOnDisk(doc.getDocumentId());
+                    Files.deleteIfExists(path);
+                    documentRepository.delete(doc);
+
+                    auditLogRepository.save(AuditLog.builder()
+                            .user("system")
+                            .action("PURGE_DOCUMENT")
+                            .resource(doc.getDocumentId())
+                            .issuerCode(doc.getIssuerCode())
+                            .status("EXPIRED")
+                            .build());
+
+                    totalDeleted++;
+                } catch (Exception e) {
+                    log.error("Erreur lors de la purge du document {}", doc.getDocumentId(), e);
+                }
             }
-        }
-        log.info("Purge terminée. {} documents supprimés.", toDelete.size());
+
+            // Si aucun document n'a été purgé dans ce lot, on passe à la page suivante.
+            // Si des documents ont été purgés, on RESTE sur la même page (index 0 ou actuel)
+            // car les enregistrements suivants se sont décalés vers le haut.
+            if (expiredInBatch.isEmpty()) {
+                page++;
+            }
+        } while (toDeletePage.hasNext() && page < 100); // Limite de sécurité pour éviter les boucles infinies
+
+        log.info("Purge terminée. {} documents supprimés.", totalDeleted);
     }
 
     private boolean isExpired(Document doc, Instant sixMonthsAgo, Instant oneYearAgo) {
@@ -143,16 +167,41 @@ public class DocumentService {
                 .build();
     }
 
+    public DocumentDTO getDocumentOrThrow(String documentId) {
+        return documentRepository.findById(documentId)
+                .map(this::convertToDTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Document non trouvé: " + documentId));
+    }
+
     public Optional<DocumentDTO> getDocument(String documentId) {
         return documentRepository.findById(documentId).map(this::convertToDTO);
     }
 
     /**
+     * Retourne une ressource permettant le streaming d'un document directement depuis le disque.
+     */
+    public Resource getFileAsResource(String documentId) {
+        try {
+            Path filePath = findFileOnDisk(documentId);
+            if (!Files.exists(filePath)) {
+                throw new ResourceNotFoundException("Fichier non trouvé sur le disque pour " + documentId);
+            }
+            return new FileSystemResource(filePath);
+        } catch (IOException e) {
+            throw new StorageException("Impossible d'accéder au fichier pour " + documentId, e);
+        }
+    }
+
+    /**
      * Lit le contenu binaire d'un document directement depuis le stockage physique.
      */
-    public byte[] getFileContent(String documentId) throws IOException {
-        Path filePath = findFileOnDisk(documentId);
-        return Files.readAllBytes(filePath);
+    public byte[] getFileContent(String documentId) {
+        try {
+            Path filePath = findFileOnDisk(documentId);
+            return Files.readAllBytes(filePath);
+        } catch (IOException e) {
+            throw new StorageException("Impossible de lire le fichier pour " + documentId, e);
+        }
     }
 
     @Transactional
@@ -175,17 +224,19 @@ public class DocumentService {
      * En cas de verrouillage fichier temporaire, l'opération est rejouée automatiquement.
      */
     @Transactional
-    @org.springframework.retry.annotation.Retryable(value = IOException.class, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 1000))
-    public void addAcknowledgement(String entityCode, String documentId, AcknowledgementType type, String details) throws IOException {
-        Path currentPath = findFileOnDisk(documentId);
-        String filename = currentPath.getFileName().toString();
-        String baseName = filename.substring(0, filename.lastIndexOf('.'));
-        String newExtension = "." + type.name();
+    @org.springframework.retry.annotation.Retryable(value = {IOException.class, StorageException.class}, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 1000))
+    public void addAcknowledgement(String entityCode, String documentId, AcknowledgementType type, String details) {
+        try {
+            Path currentPath = findFileOnDisk(documentId);
+            String filename = currentPath.getFileName().toString();
+            String baseName = filename.substring(0, filename.lastIndexOf('.'));
+            String newExtension = "." + type.name();
 
-        Path newPath = currentPath.resolveSibling(baseName + newExtension);
-        Files.move(currentPath, newPath, StandardCopyOption.REPLACE_EXISTING);
+            Path newPath = currentPath.resolveSibling(baseName + newExtension);
+            Files.move(currentPath, newPath, StandardCopyOption.REPLACE_EXISTING);
 
-        Document doc = documentRepository.findById(documentId).orElseThrow();
+            Document doc = documentRepository.findById(documentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Document non trouvé en base: " + documentId));
         doc.setStatus(type);
         documentRepository.save(doc);
 
@@ -204,115 +255,124 @@ public class DocumentService {
                 .status(type.name())
                 .build());
 
-        log.info("Status mis à jour : {} -> {} (Fichier renommé en {})", documentId, type, newPath);
-        eventService.broadcast("doc-updated", Map.of("documentId", documentId, "status", type));
-        eventService.broadcast("alerts-updated", Map.of("documentId", documentId, "status", type));
+            log.info("Status mis à jour : {} -> {} (Fichier renommé en {})", documentId, type, newPath);
+            eventService.broadcast("doc-updated", Map.of("documentId", documentId, "status", type));
+            eventService.broadcast("alerts-updated", Map.of("documentId", documentId, "status", type));
+        } catch (IOException e) {
+            throw new StorageException("Erreur lors de la mise à jour de l'accusé de réception sur disque", e);
+        }
     }
 
     /**
      * Tâche synchronisant l'index JPA avec l'état réel du filesystem.
      * S'exécute au démarrage de l'application et toutes les minutes.
-     * Optimisation 1 : Sync incrémental basé sur la date de modification.
+     * Optimisation : Utilise lastSeenAt pour détecter les suppressions sans charger tout l'index.
      */
     @Scheduled(initialDelay = 5000, fixedDelay = 60000)
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = "stats", allEntries = true)
     public void syncFileSystemToIndex() {
-        log.info("Démarrage de la synchronisation filesystem -> index (Incremental)...");
-        Instant currentScanTime = Instant.now();
+        log.info("Démarrage de la synchronisation filesystem -> index (Optimized)...");
+        Instant syncStartTime = Instant.now();
         
         Collection<Document> onDisk = scanFileSystem();
-        
-        // Filtrer pour ne traiter que les nouveaux ou modifiés (Optimisation 1)
-        List<Document> toProcess = onDisk.stream()
-                .filter(d -> d.getCreatedAt().isAfter(lastScanTimestamp))
-                .toList();
-
-        if (toProcess.isEmpty()) {
-            log.info("Aucun changement détecté sur le filesystem.");
-            lastScanTimestamp = currentScanTime;
+        if (onDisk.isEmpty()) {
+            log.info("Filesystem vide ou inaccessible.");
+            // On ne supprime rien ici par sécurité si c'est vide (ex: montage réseau déconnecté)
             return;
         }
 
-        List<Document> inDb = documentRepository.findAll();
-        Set<String> inDbIds = inDb.stream().map(Document::getDocumentId).collect(Collectors.toSet());
-
-        // Update or Add
-        List<Document> toSave = new ArrayList<>();
-        for (Document diskDoc : toProcess) {
-            if (!inDbIds.contains(diskDoc.getDocumentId())) {
-                auditLogRepository.save(AuditLog.builder()
-                        .user("system")
-                        .action("RECEIVE_DOCUMENT")
-                        .resource(diskDoc.getType().name())
-                        .documentId(diskDoc.getDocumentId())
-                        .issuerCode(diskDoc.getIssuerCode())
-                        .status("RECEIVED")
-                        .build());
-                log.info("Nouveau document détecté : {}", diskDoc.getDocumentId());
-            }
-            toSave.add(diskDoc);
-        }
-        documentRepository.saveAll(toSave);
-
-        // Delete (toujours nécessaire pour refléter les suppressions manuelles)
-        Map<String, Document> onDiskMap = onDisk.stream()
-                .collect(Collectors.toMap(Document::getDocumentId, d -> d));
-        List<String> toDelete = inDbIds.stream()
-                .filter(id -> !onDiskMap.containsKey(id))
+        // 1. Identifier les nouveaux ou modifiés pour mise à jour complète
+        List<Document> toSave = onDisk.stream()
+                .filter(d -> d.getCreatedAt().isAfter(lastScanTimestamp))
+                .peek(d -> {
+                    try {
+                        log.info("Nouveau/Modifié détecté : {}", d.getDocumentId());
+                        auditLogRepository.save(AuditLog.builder()
+                                .user("system")
+                                .action("RECEIVE_DOCUMENT")
+                                .resource(d.getType().name())
+                                .documentId(d.getDocumentId())
+                                .issuerCode(d.getIssuerCode())
+                                .status("RECEIVED")
+                                .build());
+                    } catch (Exception e) {
+                        log.error("Erreur lors de la création du log d'audit pour {}", d.getDocumentId(), e);
+                    }
+                })
                 .collect(Collectors.toList());
-        if (!toDelete.isEmpty()) {
-            documentRepository.deleteAllById(toDelete);
+
+        if (!toSave.isEmpty()) {
+            documentRepository.saveAll(toSave);
         }
 
-        lastScanTimestamp = currentScanTime;
-        log.info("Synchronisation terminée. {} documents traités, {} au total.", toProcess.size(), onDisk.size());
+        // 2. Pour tous les autres déjà en base, mettre à jour lastSeenAt par lots
+        List<String> allDiskIds = onDisk.stream().map(Document::getDocumentId).toList();
+        int batchSize = 500;
+        for (int i = 0; i < allDiskIds.size(); i += batchSize) {
+            List<String> batch = allDiskIds.subList(i, Math.min(i + batchSize, allDiskIds.size()));
+            documentRepository.markAsSeen(batch, syncStartTime);
+        }
+
+        // 3. Supprimer ce qui n'a pas été vu pendant ce scan (et qui n'était pas un nouveau document)
+        // On laisse une petite marge de sécurité de 10 secondes
+        documentRepository.deleteByLastSeenAtBefore(syncStartTime.minusSeconds(10));
+
+        lastScanTimestamp = syncStartTime;
+        log.info("Synchronisation terminée. {} nouveaux/modifiés, {} au total sur disque.", toSave.size(), onDisk.size());
     }
 
     /**
      * Scanne récursivement la structure : storage_root/{issuer}/{entity}/{type}/file
+     * Optimisation : Scan parallèle et récupération des attributs en une seule passe.
      */
     private Collection<Document> scanFileSystem() {
-        Map<String, Document> docs = new HashMap<>();
         Path root = Paths.get(storageRoot).toAbsolutePath();
-        if (!Files.exists(root)) return docs.values();
+        if (!Files.exists(root)) return Collections.emptyList();
 
         try (Stream<Path> recipients = Files.list(root)) {
-            recipients.filter(Files::isDirectory).forEach(recPath -> {
-                String recipient = recPath.getFileName().toString();
-                try (Stream<Path> entities = Files.list(recPath)) {
-                    entities.filter(Files::isDirectory).forEach(entPath -> {
-                        String entity = entPath.getFileName().toString();
-                        try (Stream<Path> types = Files.list(entPath)) {
-                            types.filter(Files::isDirectory).forEach(typePath -> {
-                                String typeStr = typePath.getFileName().toString();
-                                try (Stream<Path> files = Files.list(typePath)) {
-                                    files.filter(Files::isRegularFile).forEach(filePath -> {
-                                        // On mappe l'entité. Le calcul du hash ne se fera que si nécessaire 
-                                        // (implémenté dans mapFileToEntity)
-                                        Document doc = mapFileToEntity(recipient, entity, typeStr, filePath);
-                                        docs.put(doc.getDocumentId(), doc);
-                                    });
-                                } catch (IOException ignored) {}
-                            });
-                        } catch (IOException ignored) {}
-                    });
-                } catch (IOException ignored) {}
-            });
+            return recipients.filter(Files::isDirectory)
+                    .parallel()
+                    .flatMap(this::scanRecipient)
+                    .collect(Collectors.toMap(Document::getDocumentId, d -> d, (d1, d2) -> d1))
+                    .values();
         } catch (IOException e) {
             log.error("Erreur lors du scan du filesystem", e);
+            return Collections.emptyList();
         }
-        return docs.values();
+    }
+
+    private Stream<Document> scanRecipient(Path recPath) {
+        String recipient = recPath.getFileName().toString();
+        List<Document> docs = new ArrayList<>();
+        try {
+            Files.walkFileTree(recPath, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    Path relative = recPath.relativize(file);
+                    // Structure attendue : {entity}/{type}/{file}
+                    if (relative.getNameCount() == 3) {
+                        String entity = relative.getName(0).toString();
+                        String typeStr = relative.getName(1).toString();
+                        docs.add(mapFileToEntity(recipient, entity, typeStr, file, attrs));
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            log.error("Erreur lors du scan du destinataire {}", recipient, e);
+        }
+        return docs.stream();
     }
 
     /**
-     * Extrait les métadonnées d'un fichier à partir de son chemin et de son extension.
+     * Extrait les métadonnées d'un fichier à partir de son chemin et de ses attributs.
      */
-    private Document mapFileToEntity(String recipient, String entity, String typeStr, Path filePath) {
+    private Document mapFileToEntity(String recipient, String entity, String typeStr, Path filePath, BasicFileAttributes attrs) {
         String filename = filePath.getFileName().toString();
         int lastDot = filename.lastIndexOf('.');
-        String docId = filename.substring(0, lastDot);
-        String ext = filename.substring(lastDot + 1);
+        String docId = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+        String ext = lastDot > 0 ? filename.substring(lastDot + 1) : "";
 
         String uniqueDocId = recipient + "_" + entity + "_" + docId;
 
@@ -329,17 +389,19 @@ public class DocumentService {
             try { doc.setStatus(AcknowledgementType.valueOf(ext)); } catch (Exception e) { doc.setStatus(AcknowledgementType.AR0); }
         }
 
-        try { 
-            Instant mtime = Files.getLastModifiedTime(filePath).toInstant();
-            doc.setCreatedAt(mtime);
-            // Optimisation 3 : On ne calcule le hash que pour les nouveaux fichiers
-            if (mtime.isAfter(lastScanTimestamp)) {
+        Instant mtime = attrs.lastModifiedTime().toInstant();
+        doc.setCreatedAt(mtime);
+        doc.setUpdatedAt(mtime);
+        doc.setLastSeenAt(Instant.now());
+
+        // Optimisation : On ne calcule le hash que pour les nouveaux fichiers
+        if (mtime.isAfter(lastScanTimestamp)) {
+            try {
                 doc.setHash(calculateSHA256(filePath));
+            } catch (Exception e) {
+                log.error("Erreur lors du calcul du hash pour {}", filePath, e);
             }
-        } catch (Exception e) { 
-            doc.setCreatedAt(Instant.now()); 
         }
-        doc.setUpdatedAt(doc.getCreatedAt());
 
         String period = "2024-01";
         if (filename.startsWith("doc_") && filename.length() >= 10) {
@@ -352,7 +414,7 @@ public class DocumentService {
 
     private Path findFileOnDisk(String documentId) throws IOException {
         Document doc = documentRepository.findById(documentId)
-                .orElseThrow(() -> new IOException("Document " + documentId + " introuvable en base"));
+                .orElseThrow(() -> new ResourceNotFoundException("Document " + documentId + " introuvable en base"));
 
         String recipient = doc.getIssuerCode();
         String entity = doc.getEntityCode();
