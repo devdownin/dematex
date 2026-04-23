@@ -6,6 +6,7 @@ import { DocumentListComponent } from './components/document-list/document-list.
 import { DocumentDetailComponent } from './components/document-detail/document-detail.component';
 import { AuditTrailComponent } from './components/audit-trail/audit-trail.component';
 import { SystemSettingsComponent } from './components/system-settings/system-settings.component';
+import { adminGuard } from './admin.guard';
 
 export const routes: Routes = [
   {
@@ -18,7 +19,7 @@ export const routes: Routes = [
       { path: 'documents', component: DocumentListComponent },
       { path: 'documents/:documentId', component: DocumentDetailComponent },
       { path: 'audit', component: AuditTrailComponent },
-      { path: 'settings', component: SystemSettingsComponent }
+      { path: 'settings', component: SystemSettingsComponent, canActivate: [adminGuard] }
     ]
   }
 ];

@@ -25,6 +25,8 @@ import java.util.Optional;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.dematex.backend.config.SecurityUtils;
+
 @RestController @RequestMapping("/api/v1") @RequiredArgsConstructor
 @Tag(name = "Documents", description = "API de gestion des documents réglementaires et accusés de réception")
 public class DocumentController {
@@ -32,51 +34,25 @@ public class DocumentController {
     private final EventService eventService;
     private final SignedDownloadService signedDownloadService;
     private final StorageService storageService;
-
-    private void checkEntityAccess(String entityCode) {
-        User user = getCurrentUser();
-        if (user.getLegalEntityCode() != null && !user.getLegalEntityCode().equals(entityCode)) {
-            throw new org.springframework.security.access.AccessDeniedException("Accès refusé à l'entité " + entityCode);
-        }
-    }
-
-    private void checkIssuerAccess(String issuerCode) {
-        User user = getCurrentUser();
-        if (user.getAllowedIssuer() != null && !user.getAllowedIssuer().equals(issuerCode)) {
-            throw new org.springframework.security.access.AccessDeniedException("Accès refusé à l'émetteur " + issuerCode);
-        }
-    }
-
-    /** Returns the issuer restriction for the current user, or null if admin. */
-    private String getEffectiveIssuer() {
-        return getCurrentUser().getAllowedIssuer();
-    }
-
-    private User getCurrentUser() {
-        Object principal = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof User) {
-            return (User) principal;
-        }
-        throw new org.springframework.security.access.AccessDeniedException("Utilisateur non authentifié");
-    }
+    private final SecurityUtils securityUtils;
 
     @Operation(summary = "Liste paginée des documents", description = "Récupère les documents d'une entité avec filtrage par type, période, statut et pagination cursor-based")
     @GetMapping("/entities/{entityCode}/documents")
     public PaginatedResponse<DocumentDTO> getDocuments(@PathVariable String entityCode, @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "100") int limit, @RequestParam(required = false) DocumentType type, @RequestParam(required = false) ClientType clientType, @RequestParam(required = false) String periodStart, @RequestParam(required = false) String periodEnd, @RequestParam(required = false) AcknowledgementType status, @RequestParam(required = false) String q, @RequestParam(required = false) Boolean lateOnly) {
-        checkEntityAccess(entityCode);
-        return documentService.getDocuments(entityCode, getEffectiveIssuer(), type, clientType, periodStart, periodEnd, status, cursor, q, lateOnly, limit);
+        securityUtils.checkEntityAccess(entityCode);
+        return documentService.getDocuments(entityCode, securityUtils.getEffectiveIssuer(), type, clientType, periodStart, periodEnd, status, cursor, q, lateOnly, limit);
     }
 
     @Operation(summary = "Recherche plein texte", description = "Recherche des documents sur documentId, entityCode, issuerCode et period")
     @GetMapping("/search")
     public PaginatedResponse<DocumentDTO> searchDocuments(@RequestParam String q, @RequestParam(required = false) String entityCode, @RequestParam(required = false) String cursor, @RequestParam(defaultValue = "100") int limit, @RequestParam(required = false) DocumentType type, @RequestParam(required = false) ClientType clientType, @RequestParam(required = false) String periodStart, @RequestParam(required = false) String periodEnd, @RequestParam(required = false) AcknowledgementType status, @RequestParam(required = false) Boolean lateOnly) {
-        User currentUser = getCurrentUser();
+        User currentUser = securityUtils.getCurrentUser();
         String effectiveEntity = entityCode;
         if (currentUser.getLegalEntityCode() != null) {
             effectiveEntity = currentUser.getLegalEntityCode();
         }
 
-        return documentService.getDocuments(effectiveEntity, getEffectiveIssuer(), type, clientType, periodStart, periodEnd, status, cursor, q, lateOnly, limit);
+        return documentService.getDocuments(effectiveEntity, securityUtils.getEffectiveIssuer(), type, clientType, periodStart, periodEnd, status, cursor, q, lateOnly, limit);
     }
 
     @Operation(summary = "Détail d'un document", description = "Récupère les métadonnées complètes d'un document par son ID")
@@ -84,8 +60,8 @@ public class DocumentController {
     public ResponseEntity<DocumentDTO> getDocument(@PathVariable String documentId) {
         Optional<DocumentDTO> doc = documentService.getDocument(documentId);
         if (doc.isPresent()) {
-            checkEntityAccess(doc.get().getEntityCode());
-            checkIssuerAccess(doc.get().getIssuerCode());
+            securityUtils.checkEntityAccess(doc.get().getEntityCode());
+            securityUtils.checkIssuerAccess(doc.get().getIssuerCode());
             return ResponseEntity.ok(doc.get());
         }
         return ResponseEntity.notFound().build();
@@ -93,11 +69,11 @@ public class DocumentController {
 
     @Operation(summary = "Statistiques du tableau de bord", description = "Retourne les compteurs globaux : total, AR3, en retard, taux de complétion")
     @GetMapping("/stats")
-    public DashboardStats getStats() { return documentService.getStats(getEffectiveIssuer()); }
+    public DashboardStats getStats() { return documentService.getStats(securityUtils.getEffectiveIssuer()); }
 
     @GetMapping("/stats/latency-trends")
     public List<java.util.Map<String, Object>> getLatencyTrends(@RequestParam(defaultValue = "daily") String granularity) {
-        return documentService.getLatencyTrends(granularity, getEffectiveIssuer());
+        return documentService.getLatencyTrends(granularity, securityUtils.getEffectiveIssuer());
     }
 
     @GetMapping("/documents/{documentId}/download-link")
@@ -130,8 +106,8 @@ public class DocumentController {
     @Operation(summary = "Exporter les documents en CSV", description = "Exporte la liste filtrée des documents au format CSV")
     @GetMapping("/entities/{entityCode}/documents/export")
     public ResponseEntity<Resource> exportDocuments(@PathVariable String entityCode, @RequestParam(required = false) DocumentType type, @RequestParam(required = false) ClientType clientType, @RequestParam(required = false) String periodStart, @RequestParam(required = false) String periodEnd, @RequestParam(required = false) AcknowledgementType status, @RequestParam(required = false) String q, @RequestParam(required = false) Boolean lateOnly) {
-        checkEntityAccess(entityCode);
-        byte[] content = documentService.exportDocumentsCsv(entityCode, getEffectiveIssuer(), type, clientType, periodStart, periodEnd, status, q, lateOnly);
+        securityUtils.checkEntityAccess(entityCode);
+        byte[] content = documentService.exportDocumentsCsv(entityCode, securityUtils.getEffectiveIssuer(), type, clientType, periodStart, periodEnd, status, q, lateOnly);
         Resource resource = new ByteArrayResource(content);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"documents-export.csv\"")
@@ -159,13 +135,13 @@ public class DocumentController {
     @Operation(summary = "Journal d'audit", description = "Retourne l'historique complet des actions (accusés de réception, modifications)")
     @GetMapping("/audit")
     public List<AuditLog> getAuditLogs() {
-        return documentService.getAuditLogs();
+        return documentService.getAuditLogs(securityUtils.getEffectiveIssuer());
     }
 
     @Operation(summary = "Exporter le journal d'audit", description = "Exporte le journal d'audit au format CSV")
     @GetMapping("/audit/export")
     public ResponseEntity<Resource> exportAuditLogs() {
-        byte[] content = documentService.exportAuditCsv();
+        byte[] content = documentService.exportAuditCsv(securityUtils.getEffectiveIssuer());
         Resource resource = new ByteArrayResource(content);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"audit-export.csv\"")

@@ -5,4 +5,5 @@ import java.util.List;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findAllByOrderByTimestampDesc();
+    List<AuditLog> findByIssuerCodeOrderByTimestampDesc(String issuerCode);
 }

@@ -6,6 +6,7 @@ import com.dematex.backend.model.AlertType;
 import com.dematex.backend.model.Document;
 import com.dematex.backend.model.DocumentType;
 import com.dematex.backend.repository.AlertRepository;
+import com.dematex.backend.repository.AuditLogRepository;
 import com.dematex.backend.repository.DocumentRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,9 @@ class AlertServiceTest {
 
     @Mock
     private DocumentRepository documentRepository;
+
+    @Mock
+    private AuditLogRepository auditLogRepository;
 
     @Mock
     private EventService eventService;
@@ -110,6 +114,6 @@ class AlertServiceTest {
         verify(alertRepository).saveAll(captor.capture());
 
         List<Alert> savedAlerts = captor.getValue();
-        assertTrue(savedAlerts.stream().anyMatch(alert -> alert.getCode().equals("ALT-AMT-MISMATCH")));
+        assertTrue(savedAlerts.stream().anyMatch(alert -> alert.getCode().equals("ALT-AMT-VTIS-MISMATCH")));
     }
 }

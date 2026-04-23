@@ -50,6 +50,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/profiles").permitAll()
                 .requestMatchers("/api/v1/events").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/api/v1/settings/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/config/**").hasRole("ADMIN")
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().authenticated()
             )
