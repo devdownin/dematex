@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "deps:install": "npm install --include=optional",
+    "deps:update": "npm update --include=optional"
   },
   "private": true,
   "packageManager": "npm@11.11.0",
@@ -46,7 +48,7 @@
     "vitest": "^4.0.8"
   },
   "optionalDependencies": {
-    "@tailwindcss/oxide-win32-x64-msvc": "^4.2.2",
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.2.4",
     "lightningcss-win32-x64-msvc": "^1.32.0"
   }
 }

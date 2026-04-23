@@ -37,7 +37,21 @@
       "Bash(grep -c \"min-h-screen\" dist/frontend/browser/*.css)",
       "Bash(grep -oP '\\\\.\\(flex|min-h-screen|bg-|text-|px-|py-|gap-|rounded|font-bold|shadow|grid\\)[a-zA-Z0-9_-]*' dist/frontend/browser/*.css)",
       "Bash(mvn dependency:tree)",
-      "Bash(mvn compile:*)"
+      "Bash(mvn compile:*)",
+      "Bash(./mvnw compile:*)",
+      "Bash(./mvnw spring-boot:run -q)",
+      "Bash(tasklist)",
+      "Bash(netstat -ano)",
+      "Bash(cmd.exe //c build.bat)",
+      "Bash(cmd.exe //c \"C:\\\\\\\\Applis\\\\\\\\github\\\\\\\\dematex\\\\\\\\build.bat\")",
+      "Bash(npm cache:*)",
+      "Bash(node -e \"console.log\\(process.platform, process.arch\\)\")",
+      "Bash(node -e \"require\\('lightningcss'\\)\")",
+      "Bash(node -e \"require\\('lightningcss'\\); console.log\\('OK'\\)\")",
+      "Bash(cmd.exe //c \"mvnw.cmd --version\")",
+      "Bash(cmd.exe //c \".\\\\mvnw.cmd --version\")",
+      "Bash(./mvnw --version)",
+      "Bash(grep -E \"\\\\.html|\\\\.ts$\")"
     ]
   }
 }

@@ -2,7 +2,7 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN corepack enable && corepack prepare npm@11.11.0 --activate && npm install
+RUN npm install
 COPY . .
 RUN npx ng build --configuration production
 

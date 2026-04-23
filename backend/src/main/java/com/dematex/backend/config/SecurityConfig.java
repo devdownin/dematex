@@ -8,14 +8,19 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import lombok.RequiredArgsConstructor;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final TokenFilter tokenFilter;
 
     @Bean @Order(1)
     public SecurityFilterChain swaggerFilterChain(HttpSecurity http) throws Exception {
@@ -41,10 +46,14 @@ public class SecurityConfig {
                 .permissionsPolicy(permissions -> permissions.policy("geolocation=(), microphone=(), camera=()"))
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/**").permitAll() // Production would use OAuth2/JWT
+                .requestMatchers("/api/v1/auth/login").permitAll()
+                .requestMatchers("/api/v1/auth/profiles").permitAll()
+                .requestMatchers("/api/v1/events").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/api/**").authenticated()
                 .anyRequest().authenticated()
-            );
+            )
+            .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './layout/layout.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { AlertsComponent } from './components/alerts/alerts.component';
 import { DocumentListComponent } from './components/document-list/document-list.component';
 import { DocumentDetailComponent } from './components/document-detail/document-detail.component';
 import { AuditTrailComponent } from './components/audit-trail/audit-trail.component';
@@ -13,6 +14,7 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: DashboardComponent },
+      { path: 'alerts', component: AlertsComponent },
       { path: 'documents', component: DocumentListComponent },
       { path: 'documents/:documentId', component: DocumentDetailComponent },
       { path: 'audit', component: AuditTrailComponent },

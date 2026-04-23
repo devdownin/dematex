@@ -34,6 +34,7 @@ frontend/node_modules/
 frontend/dist/
 frontend/.angular/
 frontend/.vscode/
+frontend/.npm-cache/
 
 # Verification
 verification/
@@ -43,3 +44,5 @@ http_server.log
 
 # Data
 regulatory_files/
+
+node_modules/

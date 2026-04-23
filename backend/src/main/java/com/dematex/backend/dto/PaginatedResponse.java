@@ -8,4 +8,5 @@ public class PaginatedResponse<T> {
     private List<T> items;
     private String nextCursor;
     private boolean hasMore;
+    private long totalCount;
 }

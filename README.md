@@ -46,6 +46,17 @@ The system is designed for high-volumetry industrial ETL integration.
    npx ng serve
    ```
 
+### Dependency Updates
+
+- `npm install` synchronizes dependencies from `package-lock.json`; it does not upgrade packages already locked.
+- To update the frontend dependencies allowed by `frontend/package.json`, run:
+  ```bash
+  cd frontend
+  npm run deps:update
+  ```
+- The frontend uses a project-local npm cache in `frontend/.npm-cache` to avoid Windows permission issues with the global npm cache.
+- This repo also forces `os=win32` in `frontend/.npmrc` because a user-level npm config with `os=linux` prevents Windows optional binaries from being installed.
+
 ## API Documentation
 
 The backend exposes the following key endpoints:

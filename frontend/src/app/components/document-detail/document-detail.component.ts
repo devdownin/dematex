@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { DocumentService } from '../../services/document.service';
 import { Acknowledgement, DocumentDTO } from '../../models/document.model';
+import { TranslationService } from '../../services/translation.service';
 
 @Component({
   selector: 'app-document-detail',
@@ -17,20 +18,20 @@ import { Acknowledgement, DocumentDTO } from '../../models/document.model';
              <a routerLink="/documents" class="text-on-surface-variant hover:text-primary transition-all">
                <span class="material-symbols-outlined text-sm align-middle">arrow_back</span>
              </a>
-             <p class="text-[10px] text-on-surface-variant font-bold tracking-widest uppercase">Catalog > Document Detail</p>
+             <p class="text-[10px] text-on-surface-variant font-bold tracking-widest uppercase">{{ t('docDetail.breadcrumb') }}</p>
           </div>
           <h2 class="text-4xl font-black tracking-tight text-on-surface">{{doc.documentId}}</h2>
           <div class="flex items-center gap-3 mt-1">
             <span class="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tighter">{{doc.type}}</span>
-            <span *ngIf="doc.status === 'AR3'" class="bg-[#e7f6f1] text-[#24a375] px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tighter">VALIDATED</span>
-            <span *ngIf="doc.isLate && doc.status !== 'AR3'" class="bg-error-container text-on-error-container px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tighter">ERROR</span>
-            <span class="text-xs font-semibold text-on-surface-variant italic">Last updated: {{acknowledgements[0]?.timestamp | date:'dd MMM yyyy HH:mm'}}</span>
+            <span *ngIf="doc.status === 'AR3'" class="bg-[#e7f6f1] text-[#24a375] px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tighter">{{ t('common.validated') }}</span>
+            <span *ngIf="doc.isLate && doc.status !== 'AR3'" class="bg-error-container text-on-error-container px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tighter">{{ t('common.error') }}</span>
+            <span class="text-xs font-semibold text-on-surface-variant italic">{{ t('docDetail.lastUpdated') }}: {{acknowledgements[0]?.timestamp | date:'dd MMM yyyy HH:mm'}}</span>
           </div>
         </div>
         <div class="flex gap-3">
           <button (click)="download()" class="flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:scale-[0.98] transition-all shadow-lg shadow-primary/20">
             <span class="material-symbols-outlined text-sm">download</span>
-            Download Source
+            {{ t('docDetail.downloadSource') }}
           </button>
         </div>
       </div>
@@ -41,7 +42,7 @@ import { Acknowledgement, DocumentDTO } from '../../models/document.model';
         <div class="lg:col-span-2 space-y-6">
           <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
              <div class="px-6 py-4 bg-surface-container-low border-b border-slate-100 flex justify-between items-center">
-               <h3 class="font-bold text-on-surface uppercase tracking-tight text-sm">Lifecycle Timeline</h3>
+               <h3 class="font-bold text-on-surface uppercase tracking-tight text-sm">{{ t('docDetail.lifecycle') }}</h3>
                <span class="material-symbols-outlined text-on-surface-variant text-sm">timeline</span>
              </div>
              <div class="p-8">
@@ -68,59 +69,70 @@ import { Acknowledgement, DocumentDTO } from '../../models/document.model';
         <!-- Sidebar: Metadata & Integrity -->
         <div class="space-y-6">
            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-              <h4 class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant mb-6">Document Metadata</h4>
+              <h4 class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant mb-6">{{ t('docDetail.metadata') }}</h4>
               <div class="space-y-4">
                  <div class="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span class="text-xs font-bold text-on-surface-variant">Entity Code</span>
+                    <span class="text-xs font-bold text-on-surface-variant">{{ t('docDetail.entityCode') }}</span>
                     <span class="text-xs font-black text-primary">{{doc.entityCode}}</span>
                  </div>
                  <div class="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span class="text-xs font-bold text-on-surface-variant">Period</span>
+                    <span class="text-xs font-bold text-on-surface-variant">{{ t('docDetail.period') }}</span>
                     <span class="text-xs font-black text-primary">{{doc.period}}</span>
                  </div>
                  <div class="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span class="text-xs font-bold text-on-surface-variant">Deadline</span>
+                    <span class="text-xs font-bold text-on-surface-variant">{{ t('docDetail.deadline') }}</span>
                     <span class="text-xs font-black text-primary">{{doc.deadline | date:'short'}}</span>
                  </div>
                  <div class="flex justify-between items-center py-2 border-b border-slate-50">
-                    <span class="text-xs font-bold text-on-surface-variant">Issuer Authority</span>
+                    <span class="text-xs font-bold text-on-surface-variant">{{ t('docDetail.issuerAuthority') }}</span>
                     <span class="text-xs font-black text-primary">{{doc.issuerCode}}</span>
                  </div>
               </div>
            </div>
 
            <div class="bg-[#102a43] p-6 rounded-xl text-white">
-              <h4 class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">Cryptographic Proof</h4>
+              <h4 class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">{{ t('docDetail.cryptoProof') }}</h4>
               <div class="p-3 bg-white/5 rounded-lg font-mono text-[9px] break-all opacity-80 mb-4" *ngIf="doc.hash">
                 SHA256: {{doc.hash}}
               </div>
               <div class="flex items-center gap-2">
                  <span class="material-symbols-outlined text-[#68dba9] text-sm">verified</span>
-                 <span class="text-[10px] font-bold uppercase tracking-wider">Validated by Sovereign Node</span>
+                 <span class="text-[10px] font-bold uppercase tracking-wider">{{ t('docDetail.validatedByNode') }}</span>
               </div>
            </div>
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-  `]
+  styles: [`:host { display: block; }`]
 })
 export class DocumentDetailComponent implements OnInit {
   doc?: DocumentDTO;
   acknowledgements: Acknowledgement[] = [];
-  constructor(private route: ActivatedRoute, private documentService: DocumentService) {}
+
+  constructor(
+    private route: ActivatedRoute,
+    private documentService: DocumentService,
+    private translationService: TranslationService
+  ) {}
+
+  t(key: string, params?: Record<string, string | number>): string {
+    return this.translationService.t(key, params);
+  }
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('documentId')!;
     this.documentService.getDocument(id).subscribe(d => this.doc = d);
     this.documentService.getAcknowledgements(id).subscribe(a => this.acknowledgements = a);
   }
+
   download(): void {
     if (!this.doc) return;
-    this.documentService.getDocumentContent(this.doc.documentId).subscribe(blob => {
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `${this.doc!.documentId}.bin`; a.click();
+    this.documentService.getSignedDownloadLink(this.doc.documentId).subscribe(link => {
+      const a = document.createElement('a');
+      a.href = link.url;
+      a.download = `${this.doc!.documentId}.bin`;
+      a.click();
     });
   }
 }

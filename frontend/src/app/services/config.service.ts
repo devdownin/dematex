@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 
 export interface PortalConfig {
   companyName: string;
@@ -8,6 +8,7 @@ export interface PortalConfig {
   primaryColor: string;
   supportEmail: string;
   entityCode: string;
+  storageRoot: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -21,6 +22,19 @@ export class ConfigService {
       tap(conf => {
         this.config.set(conf);
         this.applyBranding(conf);
+      })
+    );
+  }
+
+  updateConfig(config: Partial<PortalConfig>): Observable<any> {
+    return this.http.put<any>('/api/v1/config', config).pipe(
+      tap(() => {
+        const current = this.config();
+        if (current) {
+          const updated = { ...current, ...config };
+          this.config.set(updated);
+          this.applyBranding(updated);
+        }
       })
     );
   }

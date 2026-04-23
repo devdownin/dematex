@@ -10,4 +10,5 @@ public class PortalConfigDTO {
     private String primaryColor;
     private String supportEmail;
     private String entityCode;
+    private String storageRoot;
 }

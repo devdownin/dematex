@@ -9,7 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
@@ -28,7 +31,7 @@ public class StorageService {
     /**
      * Retourne la structure complète de l'arborescence de stockage.
      */
-    public Map<String, Object> getStructure() {
+    public Map<String, Object> getStructure(String allowedIssuer) {
         Path root = Paths.get(storageRoot).toAbsolutePath();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("rootPath", root.toString());
@@ -40,7 +43,9 @@ public class StorageService {
 
         List<Map<String, Object>> issuers = new ArrayList<>();
         try (Stream<Path> issuerPaths = Files.list(root)) {
-            issuerPaths.filter(Files::isDirectory).sorted().forEach(issuerPath -> {
+            issuerPaths.filter(Files::isDirectory)
+                    .filter(p -> allowedIssuer == null || p.getFileName().toString().equals(allowedIssuer))
+                    .sorted().forEach(issuerPath -> {
                 Map<String, Object> issuer = new LinkedHashMap<>();
                 issuer.put("name", issuerPath.getFileName().toString());
 
@@ -102,6 +107,10 @@ public class StorageService {
      * @param newExtension Nouvelle extension (ex: "AR3", "ALIRE"). Null = garder l'actuelle.
      * @return Le nouveau chemin du fichier.
      */
+    public byte[] getFileContent(String issuer, String entity, String type, String documentId) throws IOException {
+        return Files.readAllBytes(findFile(issuer, entity, type, documentId));
+    }
+
     public String renameFile(String documentId, String newName, String newExtension) throws IOException {
         Document doc = documentRepository.findById(documentId)
                 .orElseThrow(() -> new IOException("Document introuvable: " + documentId));
@@ -215,6 +224,75 @@ public class StorageService {
         return count;
     }
 
+    /**
+     * Dépose un fichier dans l'arborescence de stockage.
+     * Le chemin final est : storageRoot/{destinataire}/{entity}/{type}/filename.{statut}
+     *
+     * @param destinataire Répertoire racine (ex: REC_001)
+     * @param entity       Code entité (ex: ENT_ALPHA)
+     * @param type         Type de document (ex: FTIS, VTIS)
+     * @param statut       Extension/statut du fichier (ex: ALIRE, AR3)
+     * @param file         Le fichier uploadé
+     * @return Le chemin du fichier déposé
+     */
+    public String uploadFile(String destinataire, String entity, String type, String statut, MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            throw new IOException("Le fichier est vide");
+        }
+
+        // Validation des paramètres contre le path traversal
+        validatePathSegment(destinataire, "destinataire");
+        validatePathSegment(entity, "entity");
+        validatePathSegment(type, "type");
+        validatePathSegment(statut, "statut");
+
+        // Extraire le nom de base du fichier original (sans extension)
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isBlank()) {
+            throw new IOException("Le nom du fichier est requis");
+        }
+        // Sanitize: ne garder que le nom du fichier, pas un éventuel chemin
+        String safeName = Paths.get(originalFilename).getFileName().toString();
+        int lastDot = safeName.lastIndexOf('.');
+        String baseName = lastDot > 0 ? safeName.substring(0, lastDot) : safeName;
+        validatePathSegment(baseName, "filename");
+
+        String finalFilename = baseName + "." + statut;
+
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        Path targetDir = root.resolve(destinataire).resolve(entity).resolve(type);
+        Files.createDirectories(targetDir);
+
+        Path targetFile = targetDir.resolve(finalFilename);
+        if (Files.exists(targetFile)) {
+            throw new IOException("Un fichier avec ce nom existe déjà: " + finalFilename);
+        }
+
+        try (InputStream is = file.getInputStream()) {
+            Files.copy(is, targetFile, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        log.info("Fichier déposé: {}", targetFile);
+
+        auditLogRepository.save(AuditLog.builder()
+                .user("admin")
+                .action("FILE_UPLOAD")
+                .resource(destinataire + "/" + entity + "/" + type + "/" + finalFilename)
+                .status(statut)
+                .build());
+
+        return targetFile.toString();
+    }
+
+    private void validatePathSegment(String value, String paramName) throws IOException {
+        if (value == null || value.isBlank()) {
+            throw new IOException("Le paramètre '" + paramName + "' est requis");
+        }
+        if (value.contains("..") || value.contains("/") || value.contains("\\")) {
+            throw new IOException("Le paramètre '" + paramName + "' contient des caractères invalides");
+        }
+    }
+
     private Path findFile(Document doc) throws IOException {
         Path root = Paths.get(storageRoot).toAbsolutePath();
         String issuer = doc.getIssuerCode();
@@ -236,6 +314,36 @@ public class StorageService {
         }
 
         // Fallback: search all subdirectories
+        Path parentDir = root.resolve(issuer).resolve(entity);
+        if (Files.exists(parentDir)) {
+            try (Stream<Path> files = Files.walk(parentDir)) {
+                Optional<Path> found = files
+                        .filter(Files::isRegularFile)
+                        .filter(p -> p.getFileName().toString().startsWith(baseName + "."))
+                        .findFirst();
+                if (found.isPresent()) return found.get();
+            }
+        }
+
+        throw new IOException("Fichier introuvable pour le document: " + documentId);
+    }
+
+    private Path findFile(String issuer, String entity, String type, String documentId) throws IOException {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        String prefix = issuer + "_" + entity + "_";
+        String baseName = documentId.startsWith(prefix) ? documentId.substring(prefix.length()) : documentId;
+
+        Path targetDir = root.resolve(issuer).resolve(entity).resolve(type);
+        if (Files.exists(targetDir)) {
+            try (Stream<Path> files = Files.list(targetDir)) {
+                Optional<Path> found = files
+                        .filter(Files::isRegularFile)
+                        .filter(p -> p.getFileName().toString().startsWith(baseName + "."))
+                        .findFirst();
+                if (found.isPresent()) return found.get();
+            }
+        }
+
         Path parentDir = root.resolve(issuer).resolve(entity);
         if (Files.exists(parentDir)) {
             try (Stream<Path> files = Files.walk(parentDir)) {

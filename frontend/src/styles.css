@@ -13,6 +13,8 @@
   --color-surface-container-low: #f0f4f8;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-high: #e4e9ed;
+  --color-secondary-fixed: #dce2f9;
+  --color-on-secondary-fixed-variant: #3b4664;
 
   --font-headline: "Inter", sans-serif;
   --font-body: "Inter", sans-serif;

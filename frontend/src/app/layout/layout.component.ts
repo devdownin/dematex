@@ -1,12 +1,14 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { ConfigService } from '../services/config.service';
+import { TranslationService } from '../services/translation.service';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="flex min-h-screen text-[#171c1f] antialiased bg-[#f6fafe]">
       <!-- SideNavBar -->
@@ -17,43 +19,47 @@ import { ConfigService } from '../services/config.service';
           </div>
           <div>
             <h2 class="font-bold text-slate-900 leading-tight">{{ config()?.companyName || 'Guichet Unique' }}</h2>
-            <p class="text-[10px] text-[#43474d] font-semibold tracking-widest uppercase">Regulatory Supervision</p>
+            <p class="text-[10px] text-[#43474d] font-semibold tracking-widest uppercase">{{ t('nav.subtitle') }}</p>
           </div>
         </div>
         <nav class="flex-grow space-y-1">
           <a routerLink="/dashboard" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
             <span class="material-symbols-outlined" [class.filled]="isLinkActive('/dashboard')">dashboard</span>
-            Dashboard
+            {{ t('nav.dashboard') }}
           </a>
           <a routerLink="/documents" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
             <span class="material-symbols-outlined" [class.filled]="isLinkActive('/documents')">table_chart</span>
-            Document Catalog
+            {{ t('nav.documents') }}
+          </a>
+          <a routerLink="/alerts" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
+            <span class="material-symbols-outlined" [class.filled]="isLinkActive('/alerts')">warning</span>
+            {{ t('nav.alerts') }}
           </a>
           <a routerLink="/audit" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
             <span class="material-symbols-outlined" [class.filled]="isLinkActive('/audit')">history_edu</span>
-            Audit Log
+            {{ t('nav.audit') }}
           </a>
           <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="/swagger-ui/index.html" target="_blank">
             <span class="material-symbols-outlined">api</span>
-            API Documentation
+            {{ t('nav.api') }}
           </a>
-          <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="#">
-            <span class="material-symbols-outlined">settings_input_component</span>
-            System Settings
+          <a routerLink="/settings" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
+            <span class="material-symbols-outlined" [class.filled]="isLinkActive('/settings')">settings_input_component</span>
+            {{ t('nav.settings') }}
           </a>
         </nav>
         <button class="mt-4 mx-2 px-4 py-3 bg-[#00152a] text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[0.98] active:scale-95 shadow-lg shadow-primary/20">
           <span class="material-symbols-outlined text-sm">add</span>
-          New Document
+          {{ t('nav.newDocument') }}
         </button>
         <div class="pt-6 border-t border-slate-200 space-y-1">
           <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="#">
             <span class="material-symbols-outlined">help_outline</span>
-            Support
+            {{ t('nav.support') }}
           </a>
           <a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all" href="#">
             <span class="material-symbols-outlined">logout</span>
-            Logout
+            {{ t('nav.logout') }}
           </a>
         </div>
       </aside>
@@ -68,10 +74,21 @@ import { ConfigService } from '../services/config.service';
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                 <span class="material-symbols-outlined text-sm">search</span>
               </span>
-              <input class="bg-[#f0f4f8] border-none rounded-full py-1.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#00152a]/10 w-64 transition-all" placeholder="Search transactions..." type="text"/>
+              <input
+                [(ngModel)]="searchQuery"
+                (keyup.enter)="submitSearch()"
+                class="bg-[#f0f4f8] border-none rounded-full py-1.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#00152a]/10 w-64 transition-all"
+                [placeholder]="t('nav.search')"
+                type="text"
+              />
             </div>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <!-- Language Toggle -->
+            <button (click)="toggleLang()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200/40 rounded-full transition-all" title="Switch language">
+              <span class="material-symbols-outlined text-sm">translate</span>
+              <span class="uppercase">{{ currentLang() }}</span>
+            </button>
             <button class="p-2 text-slate-500 hover:bg-slate-200/40 rounded-full transition-all">
               <span class="material-symbols-outlined">notifications</span>
             </button>
@@ -99,11 +116,34 @@ import { ConfigService } from '../services/config.service';
 })
 export class LayoutComponent {
   config;
-  constructor(private configService: ConfigService, private router: Router) {
+  currentLang;
+  searchQuery = '';
+
+  constructor(
+    private configService: ConfigService,
+    private translationService: TranslationService,
+    private router: Router
+  ) {
     this.config = this.configService.config;
+    this.currentLang = this.translationService.lang;
+  }
+
+  t(key: string): string {
+    return this.translationService.t(key);
+  }
+
+  toggleLang(): void {
+    this.translationService.toggleLang();
   }
 
   isLinkActive(path: string): boolean {
     return this.router.url.startsWith(path);
+  }
+
+  submitSearch(): void {
+    const trimmed = this.searchQuery.trim();
+    this.router.navigate(['/documents'], {
+      queryParams: trimmed ? { q: trimmed } : {}
+    });
   }
 }
