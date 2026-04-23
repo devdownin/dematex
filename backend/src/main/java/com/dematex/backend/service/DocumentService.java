@@ -19,6 +19,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -212,107 +213,109 @@ public class DocumentService {
     /**
      * Tâche synchronisant l'index JPA avec l'état réel du filesystem.
      * S'exécute au démarrage de l'application et toutes les minutes.
-     * Optimisation 1 : Sync incrémental basé sur la date de modification.
+     * Optimisation : Utilise lastSeenAt pour détecter les suppressions sans charger tout l'index.
      */
     @Scheduled(initialDelay = 5000, fixedDelay = 60000)
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(value = "stats", allEntries = true)
     public void syncFileSystemToIndex() {
-        log.info("Démarrage de la synchronisation filesystem -> index (Incremental)...");
-        Instant currentScanTime = Instant.now();
+        log.info("Démarrage de la synchronisation filesystem -> index (Optimized)...");
+        Instant syncStartTime = Instant.now();
         
         Collection<Document> onDisk = scanFileSystem();
-        
-        // Filtrer pour ne traiter que les nouveaux ou modifiés (Optimisation 1)
-        List<Document> toProcess = onDisk.stream()
-                .filter(d -> d.getCreatedAt().isAfter(lastScanTimestamp))
-                .toList();
-
-        if (toProcess.isEmpty()) {
-            log.info("Aucun changement détecté sur le filesystem.");
-            lastScanTimestamp = currentScanTime;
+        if (onDisk.isEmpty()) {
+            log.info("Filesystem vide ou inaccessible.");
+            // On ne supprime rien ici par sécurité si c'est vide (ex: montage réseau déconnecté)
             return;
         }
 
-        List<Document> inDb = documentRepository.findAll();
-        Set<String> inDbIds = inDb.stream().map(Document::getDocumentId).collect(Collectors.toSet());
-
-        // Update or Add
-        List<Document> toSave = new ArrayList<>();
-        for (Document diskDoc : toProcess) {
-            if (!inDbIds.contains(diskDoc.getDocumentId())) {
-                auditLogRepository.save(AuditLog.builder()
-                        .user("system")
-                        .action("RECEIVE_DOCUMENT")
-                        .resource(diskDoc.getType().name())
-                        .documentId(diskDoc.getDocumentId())
-                        .issuerCode(diskDoc.getIssuerCode())
-                        .status("RECEIVED")
-                        .build());
-                log.info("Nouveau document détecté : {}", diskDoc.getDocumentId());
-            }
-            toSave.add(diskDoc);
-        }
-        documentRepository.saveAll(toSave);
-
-        // Delete (toujours nécessaire pour refléter les suppressions manuelles)
-        Map<String, Document> onDiskMap = onDisk.stream()
-                .collect(Collectors.toMap(Document::getDocumentId, d -> d));
-        List<String> toDelete = inDbIds.stream()
-                .filter(id -> !onDiskMap.containsKey(id))
+        // 1. Identifier les nouveaux ou modifiés pour mise à jour complète
+        List<Document> toSave = onDisk.stream()
+                .filter(d -> d.getCreatedAt().isAfter(lastScanTimestamp))
+                .peek(d -> {
+                    log.info("Nouveau/Modifié détecté : {}", d.getDocumentId());
+                    auditLogRepository.save(AuditLog.builder()
+                            .user("system")
+                            .action("RECEIVE_DOCUMENT")
+                            .resource(d.getType().name())
+                            .documentId(d.getDocumentId())
+                            .issuerCode(d.getIssuerCode())
+                            .status("RECEIVED")
+                            .build());
+                })
                 .collect(Collectors.toList());
-        if (!toDelete.isEmpty()) {
-            documentRepository.deleteAllById(toDelete);
+
+        if (!toSave.isEmpty()) {
+            documentRepository.saveAll(toSave);
         }
 
-        lastScanTimestamp = currentScanTime;
-        log.info("Synchronisation terminée. {} documents traités, {} au total.", toProcess.size(), onDisk.size());
+        // 2. Pour tous les autres déjà en base, mettre à jour lastSeenAt par lots
+        List<String> allDiskIds = onDisk.stream().map(Document::getDocumentId).toList();
+        int batchSize = 500;
+        for (int i = 0; i < allDiskIds.size(); i += batchSize) {
+            List<String> batch = allDiskIds.subList(i, Math.min(i + batchSize, allDiskIds.size()));
+            documentRepository.markAsSeen(batch, syncStartTime);
+        }
+
+        // 3. Supprimer ce qui n'a pas été vu pendant ce scan (et qui n'était pas un nouveau document)
+        // On laisse une petite marge de sécurité de 10 secondes
+        documentRepository.deleteByLastSeenAtBefore(syncStartTime.minusSeconds(10));
+
+        lastScanTimestamp = syncStartTime;
+        log.info("Synchronisation terminée. {} nouveaux/modifiés, {} au total sur disque.", toSave.size(), onDisk.size());
     }
 
     /**
      * Scanne récursivement la structure : storage_root/{issuer}/{entity}/{type}/file
+     * Optimisation : Scan parallèle et récupération des attributs en une seule passe.
      */
     private Collection<Document> scanFileSystem() {
-        Map<String, Document> docs = new HashMap<>();
         Path root = Paths.get(storageRoot).toAbsolutePath();
-        if (!Files.exists(root)) return docs.values();
+        if (!Files.exists(root)) return Collections.emptyList();
 
         try (Stream<Path> recipients = Files.list(root)) {
-            recipients.filter(Files::isDirectory).forEach(recPath -> {
-                String recipient = recPath.getFileName().toString();
-                try (Stream<Path> entities = Files.list(recPath)) {
-                    entities.filter(Files::isDirectory).forEach(entPath -> {
-                        String entity = entPath.getFileName().toString();
-                        try (Stream<Path> types = Files.list(entPath)) {
-                            types.filter(Files::isDirectory).forEach(typePath -> {
-                                String typeStr = typePath.getFileName().toString();
-                                try (Stream<Path> files = Files.list(typePath)) {
-                                    files.filter(Files::isRegularFile).forEach(filePath -> {
-                                        // On mappe l'entité. Le calcul du hash ne se fera que si nécessaire 
-                                        // (implémenté dans mapFileToEntity)
-                                        Document doc = mapFileToEntity(recipient, entity, typeStr, filePath);
-                                        docs.put(doc.getDocumentId(), doc);
-                                    });
-                                } catch (IOException ignored) {}
-                            });
-                        } catch (IOException ignored) {}
-                    });
-                } catch (IOException ignored) {}
-            });
+            return recipients.filter(Files::isDirectory)
+                    .parallel()
+                    .flatMap(this::scanRecipient)
+                    .collect(Collectors.toMap(Document::getDocumentId, d -> d, (d1, d2) -> d1))
+                    .values();
         } catch (IOException e) {
             log.error("Erreur lors du scan du filesystem", e);
+            return Collections.emptyList();
         }
-        return docs.values();
+    }
+
+    private Stream<Document> scanRecipient(Path recPath) {
+        String recipient = recPath.getFileName().toString();
+        List<Document> docs = new ArrayList<>();
+        try {
+            Files.walkFileTree(recPath, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    Path relative = recPath.relativize(file);
+                    // Structure attendue : {entity}/{type}/{file}
+                    if (relative.getNameCount() == 3) {
+                        String entity = relative.getName(0).toString();
+                        String typeStr = relative.getName(1).toString();
+                        docs.add(mapFileToEntity(recipient, entity, typeStr, file, attrs));
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            log.error("Erreur lors du scan du destinataire {}", recipient, e);
+        }
+        return docs.stream();
     }
 
     /**
-     * Extrait les métadonnées d'un fichier à partir de son chemin et de son extension.
+     * Extrait les métadonnées d'un fichier à partir de son chemin et de ses attributs.
      */
-    private Document mapFileToEntity(String recipient, String entity, String typeStr, Path filePath) {
+    private Document mapFileToEntity(String recipient, String entity, String typeStr, Path filePath, BasicFileAttributes attrs) {
         String filename = filePath.getFileName().toString();
         int lastDot = filename.lastIndexOf('.');
-        String docId = filename.substring(0, lastDot);
-        String ext = filename.substring(lastDot + 1);
+        String docId = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+        String ext = lastDot > 0 ? filename.substring(lastDot + 1) : "";
 
         String uniqueDocId = recipient + "_" + entity + "_" + docId;
 
@@ -329,17 +332,19 @@ public class DocumentService {
             try { doc.setStatus(AcknowledgementType.valueOf(ext)); } catch (Exception e) { doc.setStatus(AcknowledgementType.AR0); }
         }
 
-        try { 
-            Instant mtime = Files.getLastModifiedTime(filePath).toInstant();
-            doc.setCreatedAt(mtime);
-            // Optimisation 3 : On ne calcule le hash que pour les nouveaux fichiers
-            if (mtime.isAfter(lastScanTimestamp)) {
+        Instant mtime = attrs.lastModifiedTime().toInstant();
+        doc.setCreatedAt(mtime);
+        doc.setUpdatedAt(mtime);
+        doc.setLastSeenAt(Instant.now());
+
+        // Optimisation : On ne calcule le hash que pour les nouveaux fichiers
+        if (mtime.isAfter(lastScanTimestamp)) {
+            try {
                 doc.setHash(calculateSHA256(filePath));
+            } catch (Exception e) {
+                log.error("Erreur lors du calcul du hash pour {}", filePath, e);
             }
-        } catch (Exception e) { 
-            doc.setCreatedAt(Instant.now()); 
         }
-        doc.setUpdatedAt(doc.getCreatedAt());
 
         String period = "2024-01";
         if (filename.startsWith("doc_") && filename.length() >= 10) {

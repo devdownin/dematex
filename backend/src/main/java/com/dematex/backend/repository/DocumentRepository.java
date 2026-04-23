@@ -2,8 +2,11 @@ package com.dematex.backend.repository;
 import com.dematex.backend.model.*;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -71,4 +74,14 @@ public interface DocumentRepository extends JpaRepository<Document, String> {
 
     @Query("SELECT COUNT(d) FROM Document d WHERE d.issuerCode = :issuerCode AND d.status != 'AR3' AND d.createdAt < :lateThreshold")
     long countLateDocumentsByIssuer(@Param("issuerCode") String issuerCode, @Param("lateThreshold") Instant lateThreshold);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Document d SET d.lastSeenAt = :lastSeenAt WHERE d.documentId IN :ids")
+    void markAsSeen(@Param("ids") List<String> ids, @Param("lastSeenAt") Instant lastSeenAt);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Document d WHERE d.lastSeenAt < :threshold OR d.lastSeenAt IS NULL")
+    void deleteByLastSeenAtBefore(@Param("threshold") Instant threshold);
 }
