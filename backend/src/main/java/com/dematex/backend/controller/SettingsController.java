@@ -30,38 +30,26 @@ public class SettingsController {
 
     @Operation(summary = "Renommer un fichier", description = "Renomme un fichier (nom et/ou extension). Déclenche automatiquement la mise à jour de l'index H2.")
     @PostMapping("/storage/rename")
-    public ResponseEntity<Map<String, String>> renameFile(@RequestBody RenameRequest request) {
-        try {
-            String result = storageService.renameFile(request.getDocumentId(), request.getNewName(), request.getNewExtension());
-            documentService.syncFileSystemToIndex();
-            return ResponseEntity.ok(Map.of("message", "Fichier renommé avec succès", "newPath", result));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public Map<String, String> renameFile(@RequestBody RenameRequest request) {
+        String result = storageService.renameFile(request.getDocumentId(), request.getNewName(), request.getNewExtension());
+        documentService.syncFileSystemToIndex();
+        return Map.of("message", "Fichier renommé avec succès", "newPath", result);
     }
 
     @Operation(summary = "Déplacer des fichiers (réorganisation)", description = "Déplace un ou plusieurs fichiers vers une nouvelle structure de répertoires. Met à jour l'index H2.")
     @PostMapping("/storage/move")
-    public ResponseEntity<Map<String, Object>> moveFiles(@RequestBody MoveRequest request) {
-        try {
-            List<String> moved = storageService.moveFiles(request.getDocumentIds(), request.getTargetIssuer(), request.getTargetEntity(), request.getTargetType());
-            documentService.syncFileSystemToIndex();
-            return ResponseEntity.ok(Map.of("moved", moved, "count", moved.size()));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public Map<String, Object> moveFiles(@RequestBody MoveRequest request) {
+        List<String> moved = storageService.moveFiles(request.getDocumentIds(), request.getTargetIssuer(), request.getTargetEntity(), request.getTargetType());
+        documentService.syncFileSystemToIndex();
+        return Map.of("moved", moved, "count", moved.size());
     }
 
     @Operation(summary = "Renommage par lot (extension)", description = "Change l'extension de tous les fichiers correspondant aux critères. Utile pour une mise à jour de statut en masse.")
     @PostMapping("/storage/bulk-rename")
-    public ResponseEntity<Map<String, Object>> bulkRename(@RequestBody BulkRenameRequest request) {
-        try {
-            int count = storageService.bulkRenameExtension(request.getIssuer(), request.getEntity(), request.getType(), request.getFromExtension(), request.getToExtension());
-            documentService.syncFileSystemToIndex();
-            return ResponseEntity.ok(Map.of("message", "Renommage effectué", "filesRenamed", count));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public Map<String, Object> bulkRename(@RequestBody BulkRenameRequest request) {
+        int count = storageService.bulkRenameExtension(request.getIssuer(), request.getEntity(), request.getType(), request.getFromExtension(), request.getToExtension());
+        documentService.syncFileSystemToIndex();
+        return Map.of("message", "Renommage effectué", "filesRenamed", count);
     }
 
     @Operation(summary = "Forcer la synchronisation de l'index", description = "Déclenche manuellement la synchronisation filesystem → base H2")
