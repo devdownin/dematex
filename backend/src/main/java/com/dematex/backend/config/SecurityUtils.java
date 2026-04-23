@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 public class SecurityUtils {
 
     public User getCurrentUser() {
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            throw new AccessDeniedException("Utilisateur non authentifié");
+        }
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal instanceof User) {
             return (User) principal;
