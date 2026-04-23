@@ -90,13 +90,13 @@ public class DocumentController {
         if (!signedDownloadService.isValid(documentId, expiresAt, signature)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-
-        Resource resource = documentService.getFileAsResource(documentId);
+        byte[] content = documentService.getFileContent(documentId);
         documentService.recordDocumentDownload(documentId);
-
+        Resource resource = new ByteArrayResource(content);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + documentId + ".bin\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(content.length)
                 .body(resource);
     }
 
@@ -116,10 +116,6 @@ public class DocumentController {
     @Operation(summary = "Enregistrer un accusé de réception", description = "Ajoute un AR (AR1, AR2, AR3) à un document et met à jour le fichier physique")
     @PostMapping("/entities/{entityCode}/documents/{documentId}/acknowledgements")
     public void addAcknowledgement(@PathVariable String entityCode, @PathVariable String documentId, @RequestBody AcknowledgementRequest request) {
-        securityUtils.checkEntityAccess(entityCode);
-        DocumentDTO doc = documentService.getDocumentOrThrow(documentId);
-        securityUtils.checkIssuerAccess(doc.getIssuerCode());
-
         documentService.addAcknowledgement(entityCode, documentId, request.getType(), request.getDetails());
     }
 
@@ -164,9 +160,6 @@ public class DocumentController {
             @Parameter(description = "Type de document (FTIS, VTIS, PTIS, CRMENS — Montant des transactions validées sur un mois)") @RequestParam String type,
             @Parameter(description = "Statut / extension du fichier (ex: ALIRE, AR3)") @RequestParam String statut,
             @RequestParam("file") MultipartFile file) {
-        securityUtils.checkIssuerAccess(destinataire);
-        securityUtils.checkEntityAccess(entity);
-
         String path = storageService.uploadFile(destinataire, entity, type, statut, file);
         return Map.of("path", path, "status", "uploaded");
     }

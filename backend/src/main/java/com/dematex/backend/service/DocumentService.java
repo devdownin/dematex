@@ -13,7 +13,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -99,11 +98,23 @@ public class DocumentService {
                 }
             }
 
-            // Si aucun document n'a été purgé dans ce lot, on passe à la page suivante.
-            // Si des documents ont été purgés, on RESTE sur la même page (index 0 ou actuel)
-            // car les enregistrements suivants se sont décalés vers le haut.
-            if (expiredInBatch.isEmpty()) {
-                page++;
+        for (Document doc : toDelete) {
+            try {
+                Path path = findFileOnDisk(doc.getDocumentId());
+                Files.deleteIfExists(path);
+                documentRepository.delete(doc);
+                
+                auditLogRepository.save(AuditLog.builder()
+                        .user("system")
+                        .action("PURGE_DOCUMENT")
+                        .resource(doc.getDocumentId())
+                        .issuerCode(doc.getIssuerCode())
+                        .status("EXPIRED")
+                        .build());
+                
+                log.info("Document purgé : {}", doc.getDocumentId());
+            } catch (Exception e) {
+                log.error("Erreur lors de la purge du document {}", doc.getDocumentId(), e);
             }
         } while (toDeletePage.hasNext() && page < 100); // Limite de sécurité pour éviter les boucles infinies
 
