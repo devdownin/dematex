@@ -1,6 +1,8 @@
 package com.dematex.backend.service;
 
 import com.dematex.backend.dto.*;
+import com.dematex.backend.exception.ResourceNotFoundException;
+import com.dematex.backend.exception.StorageException;
 import com.dematex.backend.model.*;
 import com.dematex.backend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -80,7 +82,7 @@ public class DocumentService {
                         .build());
                 
                 log.info("Document purgé : {}", doc.getDocumentId());
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.error("Erreur lors de la purge du document {}", doc.getDocumentId(), e);
             }
         }
@@ -144,6 +146,12 @@ public class DocumentService {
                 .build();
     }
 
+    public DocumentDTO getDocumentOrThrow(String documentId) {
+        return documentRepository.findById(documentId)
+                .map(this::convertToDTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Document non trouvé: " + documentId));
+    }
+
     public Optional<DocumentDTO> getDocument(String documentId) {
         return documentRepository.findById(documentId).map(this::convertToDTO);
     }
@@ -151,9 +159,13 @@ public class DocumentService {
     /**
      * Lit le contenu binaire d'un document directement depuis le stockage physique.
      */
-    public byte[] getFileContent(String documentId) throws IOException {
-        Path filePath = findFileOnDisk(documentId);
-        return Files.readAllBytes(filePath);
+    public byte[] getFileContent(String documentId) {
+        try {
+            Path filePath = findFileOnDisk(documentId);
+            return Files.readAllBytes(filePath);
+        } catch (IOException e) {
+            throw new StorageException("Impossible de lire le fichier pour " + documentId, e);
+        }
     }
 
     @Transactional
@@ -176,17 +188,19 @@ public class DocumentService {
      * En cas de verrouillage fichier temporaire, l'opération est rejouée automatiquement.
      */
     @Transactional
-    @org.springframework.retry.annotation.Retryable(value = IOException.class, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 1000))
-    public void addAcknowledgement(String entityCode, String documentId, AcknowledgementType type, String details) throws IOException {
-        Path currentPath = findFileOnDisk(documentId);
-        String filename = currentPath.getFileName().toString();
-        String baseName = filename.substring(0, filename.lastIndexOf('.'));
-        String newExtension = "." + type.name();
+    @org.springframework.retry.annotation.Retryable(value = {IOException.class, StorageException.class}, maxAttempts = 3, backoff = @org.springframework.retry.annotation.Backoff(delay = 1000))
+    public void addAcknowledgement(String entityCode, String documentId, AcknowledgementType type, String details) {
+        try {
+            Path currentPath = findFileOnDisk(documentId);
+            String filename = currentPath.getFileName().toString();
+            String baseName = filename.substring(0, filename.lastIndexOf('.'));
+            String newExtension = "." + type.name();
 
-        Path newPath = currentPath.resolveSibling(baseName + newExtension);
-        Files.move(currentPath, newPath, StandardCopyOption.REPLACE_EXISTING);
+            Path newPath = currentPath.resolveSibling(baseName + newExtension);
+            Files.move(currentPath, newPath, StandardCopyOption.REPLACE_EXISTING);
 
-        Document doc = documentRepository.findById(documentId).orElseThrow();
+            Document doc = documentRepository.findById(documentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Document non trouvé en base: " + documentId));
         doc.setStatus(type);
         documentRepository.save(doc);
 
@@ -205,9 +219,12 @@ public class DocumentService {
                 .status(type.name())
                 .build());
 
-        log.info("Status mis à jour : {} -> {} (Fichier renommé en {})", documentId, type, newPath);
-        eventService.broadcast("doc-updated", Map.of("documentId", documentId, "status", type));
-        eventService.broadcast("alerts-updated", Map.of("documentId", documentId, "status", type));
+            log.info("Status mis à jour : {} -> {} (Fichier renommé en {})", documentId, type, newPath);
+            eventService.broadcast("doc-updated", Map.of("documentId", documentId, "status", type));
+            eventService.broadcast("alerts-updated", Map.of("documentId", documentId, "status", type));
+        } catch (IOException e) {
+            throw new StorageException("Erreur lors de la mise à jour de l'accusé de réception sur disque", e);
+        }
     }
 
     /**
@@ -233,15 +250,19 @@ public class DocumentService {
         List<Document> toSave = onDisk.stream()
                 .filter(d -> d.getCreatedAt().isAfter(lastScanTimestamp))
                 .peek(d -> {
-                    log.info("Nouveau/Modifié détecté : {}", d.getDocumentId());
-                    auditLogRepository.save(AuditLog.builder()
-                            .user("system")
-                            .action("RECEIVE_DOCUMENT")
-                            .resource(d.getType().name())
-                            .documentId(d.getDocumentId())
-                            .issuerCode(d.getIssuerCode())
-                            .status("RECEIVED")
-                            .build());
+                    try {
+                        log.info("Nouveau/Modifié détecté : {}", d.getDocumentId());
+                        auditLogRepository.save(AuditLog.builder()
+                                .user("system")
+                                .action("RECEIVE_DOCUMENT")
+                                .resource(d.getType().name())
+                                .documentId(d.getDocumentId())
+                                .issuerCode(d.getIssuerCode())
+                                .status("RECEIVED")
+                                .build());
+                    } catch (Exception e) {
+                        log.error("Erreur lors de la création du log d'audit pour {}", d.getDocumentId(), e);
+                    }
                 })
                 .collect(Collectors.toList());
 
@@ -357,7 +378,7 @@ public class DocumentService {
 
     private Path findFileOnDisk(String documentId) throws IOException {
         Document doc = documentRepository.findById(documentId)
-                .orElseThrow(() -> new IOException("Document " + documentId + " introuvable en base"));
+                .orElseThrow(() -> new ResourceNotFoundException("Document " + documentId + " introuvable en base"));
 
         String recipient = doc.getIssuerCode();
         String entity = doc.getEntityCode();
