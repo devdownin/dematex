@@ -57,14 +57,11 @@ public class DocumentController {
 
     @Operation(summary = "Détail d'un document", description = "Récupère les métadonnées complètes d'un document par son ID")
     @GetMapping("/documents/{documentId}")
-    public ResponseEntity<DocumentDTO> getDocument(@PathVariable String documentId) {
-        Optional<DocumentDTO> doc = documentService.getDocument(documentId);
-        if (doc.isPresent()) {
-            securityUtils.checkEntityAccess(doc.get().getEntityCode());
-            securityUtils.checkIssuerAccess(doc.get().getIssuerCode());
-            return ResponseEntity.ok(doc.get());
-        }
-        return ResponseEntity.notFound().build();
+    public DocumentDTO getDocument(@PathVariable String documentId) {
+        DocumentDTO doc = documentService.getDocumentOrThrow(documentId);
+        securityUtils.checkEntityAccess(doc.getEntityCode());
+        securityUtils.checkIssuerAccess(doc.getIssuerCode());
+        return doc;
     }
 
     @Operation(summary = "Statistiques du tableau de bord", description = "Retourne les compteurs globaux : total, AR3, en retard, taux de complétion")
@@ -89,18 +86,14 @@ public class DocumentController {
         if (!signedDownloadService.isValid(documentId, expiresAt, signature)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        try {
-            byte[] content = documentService.getFileContent(documentId);
-            documentService.recordDocumentDownload(documentId);
-            Resource resource = new ByteArrayResource(content);
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + documentId + ".bin\"")
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .contentLength(content.length)
-                    .body(resource);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        byte[] content = documentService.getFileContent(documentId);
+        documentService.recordDocumentDownload(documentId);
+        Resource resource = new ByteArrayResource(content);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + documentId + ".bin\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(content.length)
+                .body(resource);
     }
 
     @Operation(summary = "Exporter les documents en CSV", description = "Exporte la liste filtrée des documents au format CSV")
@@ -118,13 +111,8 @@ public class DocumentController {
 
     @Operation(summary = "Enregistrer un accusé de réception", description = "Ajoute un AR (AR1, AR2, AR3) à un document et met à jour le fichier physique")
     @PostMapping("/entities/{entityCode}/documents/{documentId}/acknowledgements")
-    public ResponseEntity<Void> addAcknowledgement(@PathVariable String entityCode, @PathVariable String documentId, @RequestBody AcknowledgementRequest request) {
-        try {
-            documentService.addAcknowledgement(entityCode, documentId, request.getType(), request.getDetails());
-            return ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
+    public void addAcknowledgement(@PathVariable String entityCode, @PathVariable String documentId, @RequestBody AcknowledgementRequest request) {
+        documentService.addAcknowledgement(entityCode, documentId, request.getType(), request.getDetails());
     }
 
     @GetMapping("/documents/{documentId}/acknowledgements")
@@ -158,18 +146,14 @@ public class DocumentController {
 
     @Operation(summary = "Déposer un fichier", description = "Upload un fichier dans l'arborescence. Le destinataire définit le répertoire racine, le type le sous-répertoire, et le statut l'extension du fichier (.ALIRE, .AR3, etc.)")
     @PostMapping(value = "/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, String>> uploadDocument(
+    public Map<String, String> uploadDocument(
             @Parameter(description = "Destinataire (répertoire racine, ex: REC_001)") @RequestParam String destinataire,
             @Parameter(description = "Code entité (ex: ENT_ALPHA)") @RequestParam String entity,
             @Parameter(description = "Type de document (FTIS, VTIS, PTIS, CRMENS — Montant des transactions validées sur un mois)") @RequestParam String type,
             @Parameter(description = "Statut / extension du fichier (ex: ALIRE, AR3)") @RequestParam String statut,
             @RequestParam("file") MultipartFile file) {
-        try {
-            String path = storageService.uploadFile(destinataire, entity, type, statut, file);
-            return ResponseEntity.ok(Map.of("path", path, "status", "uploaded"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        String path = storageService.uploadFile(destinataire, entity, type, statut, file);
+        return Map.of("path", path, "status", "uploaded");
     }
 
     @lombok.Data public static class AcknowledgementRequest { private AcknowledgementType type; private String details; }

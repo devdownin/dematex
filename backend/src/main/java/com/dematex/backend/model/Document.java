@@ -22,6 +22,7 @@ public class Document {
     private String hash;
     private Instant createdAt;
     private Instant updatedAt;
+    private Instant lastSeenAt;
     @Lob private byte[] content;
 
     @OneToMany(mappedBy = "documentId", fetch = FetchType.LAZY)
