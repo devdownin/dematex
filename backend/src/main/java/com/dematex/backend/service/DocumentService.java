@@ -64,10 +64,39 @@ public class DocumentService {
         Instant sixMonthsAgo = now.minus(Duration.ofDays(180));
         Instant oneYearAgo = now.minus(Duration.ofDays(365));
 
-        List<Document> allDocuments = documentRepository.findAll();
-        List<Document> toDelete = allDocuments.stream()
-                .filter(doc -> isExpired(doc, sixMonthsAgo, oneYearAgo))
-                .toList();
+        // Purge par lots pour éviter de charger toute la base en mémoire
+        int pageSize = 500;
+        int page = 0;
+        long totalDeleted = 0;
+        Page<Document> toDeletePage;
+
+        do {
+            // Note: On reste sur la page 0 car la suppression décale les résultats.
+            // On utilise PageRequest.of(0, ...) pour parcourir les documents sans charger toute la base.
+            toDeletePage = documentRepository.findAll(PageRequest.of(page, pageSize));
+            List<Document> expiredInBatch = toDeletePage.getContent().stream()
+                    .filter(doc -> isExpired(doc, sixMonthsAgo, oneYearAgo))
+                    .toList();
+
+            for (Document doc : expiredInBatch) {
+                try {
+                    Path path = findFileOnDisk(doc.getDocumentId());
+                    Files.deleteIfExists(path);
+                    documentRepository.delete(doc);
+
+                    auditLogRepository.save(AuditLog.builder()
+                            .user("system")
+                            .action("PURGE_DOCUMENT")
+                            .resource(doc.getDocumentId())
+                            .issuerCode(doc.getIssuerCode())
+                            .status("EXPIRED")
+                            .build());
+
+                    totalDeleted++;
+                } catch (Exception e) {
+                    log.error("Erreur lors de la purge du document {}", doc.getDocumentId(), e);
+                }
+            }
 
         for (Document doc : toDelete) {
             try {
@@ -87,8 +116,9 @@ public class DocumentService {
             } catch (Exception e) {
                 log.error("Erreur lors de la purge du document {}", doc.getDocumentId(), e);
             }
-        }
-        log.info("Purge terminée. {} documents supprimés.", toDelete.size());
+        } while (toDeletePage.hasNext() && page < 100); // Limite de sécurité pour éviter les boucles infinies
+
+        log.info("Purge terminée. {} documents supprimés.", totalDeleted);
     }
 
     private boolean isExpired(Document doc, Instant sixMonthsAgo, Instant oneYearAgo) {

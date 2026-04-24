@@ -7,8 +7,9 @@ import org.springframework.stereotype.Service;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,8 +77,8 @@ public class ValidationService {
         }
     }
 
-    public CrmensContent parseCrmens(byte[] content) throws Exception {
-        XMLStreamReader reader = factory.createXMLStreamReader(new ByteArrayInputStream(content));
+    public CrmensContent parseCrmens(InputStream inputStream) throws XMLStreamException {
+        XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
         CrmensContent.CrmensContentBuilder builder = CrmensContent.builder();
         
         while (reader.hasNext()) {
@@ -95,8 +96,8 @@ public class ValidationService {
         return builder.build();
     }
 
-    public VtisContent parseVtis(byte[] content) throws Exception {
-        XMLStreamReader reader = factory.createXMLStreamReader(new ByteArrayInputStream(content));
+    public VtisContent parseVtis(InputStream inputStream) throws XMLStreamException {
+        XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
         VtisContent.VtisContentBuilder builder = VtisContent.builder();
         
         while (reader.hasNext()) {
@@ -116,8 +117,8 @@ public class ValidationService {
         return builder.build();
     }
 
-    public FtisContent parseFtis(byte[] content) throws Exception {
-        XMLStreamReader reader = factory.createXMLStreamReader(new ByteArrayInputStream(content));
+    public FtisContent parseFtis(InputStream inputStream) throws Exception {
+        XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
         FtisContent.FtisContentBuilder builder = FtisContent.builder();
         List<FtisContent.Invoice> invoices = new ArrayList<>();
         
@@ -155,8 +156,8 @@ public class ValidationService {
         return builder.build();
     }
 
-    public PtisContent parsePtis(byte[] content) throws Exception {
-        XMLStreamReader reader = factory.createXMLStreamReader(new ByteArrayInputStream(content));
+    public PtisContent parsePtis(InputStream inputStream) throws Exception {
+        XMLStreamReader reader = factory.createXMLStreamReader(inputStream);
         PtisContent.PtisContentBuilder builder = PtisContent.builder();
         List<PtisContent.Payment> payments = new ArrayList<>();
         

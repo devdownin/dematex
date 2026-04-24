@@ -14,15 +14,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +49,7 @@ class AlertServiceTest {
     private ValidationService validationService;
 
     @Mock
-    private StorageService storageService;
+    private DocumentService documentService;
 
     @Test
     void detectAnomalies_createsMissingArAndMissingReceptionAlerts() {
@@ -62,6 +63,7 @@ class AlertServiceTest {
                 .createdAt(Instant.now().minus(3, ChronoUnit.DAYS))
                 .build();
 
+        when(documentRepository.findAll(any(PageRequest.class))).thenReturn(new PageImpl<>(List.of(lateDocument)));
         when(documentRepository.findAll()).thenReturn(List.of(lateDocument));
         when(alertRepository.findByResolvedAtIsNullOrderByDetectedAtDesc()).thenReturn(List.of());
 
@@ -93,11 +95,12 @@ class AlertServiceTest {
                 .type(DocumentType.VTIS)
                 .build();
 
+        when(documentRepository.findAll(any(PageRequest.class))).thenReturn(new PageImpl<>(List.of(crmensDoc, vtisDoc)));
         when(documentRepository.findAll()).thenReturn(List.of(crmensDoc, vtisDoc));
         when(alertRepository.findByResolvedAtIsNullOrderByDetectedAtDesc()).thenReturn(List.of());
 
-        when(storageService.getFileContent(eq("REC1"), eq("ENT1"), eq("CRMENS"), eq("REC1_ENT1_CRMENS"))).thenReturn(new byte[0]);
-        when(storageService.getFileContent(eq("REC1"), eq("ENT1"), eq("VTIS"), eq("REC1_ENT1_VTIS"))).thenReturn(new byte[0]);
+        when(documentService.getFileAsResource(eq("REC1_ENT1_CRMENS"))).thenReturn(new ByteArrayResource(new byte[0]));
+        when(documentService.getFileAsResource(eq("REC1_ENT1_VTIS"))).thenReturn(new ByteArrayResource(new byte[0]));
 
         when(validationService.parseCrmens(any())).thenReturn(ValidationService.CrmensContent.builder()
                 .totalTtc(new java.math.BigDecimal("1000.00"))
