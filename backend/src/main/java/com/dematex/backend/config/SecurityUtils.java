@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class SecurityUtils {
 
+    private static final String VAUT_USERNAME = "VAUT";
+
     public User getCurrentUser() {
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             throw new AccessDeniedException("Utilisateur non authentifié");
@@ -21,6 +23,25 @@ public class SecurityUtils {
 
     public String getEffectiveIssuer() {
         return getCurrentUser().getAllowedIssuer();
+    }
+
+    public boolean isAdmin() {
+        return "ROLE_ADMIN".equals(getCurrentUser().getRole());
+    }
+
+    public boolean isVaut() {
+        return VAUT_USERNAME.equalsIgnoreCase(getCurrentUser().getUsername());
+    }
+
+    public void checkVautAccess() {
+        if (!isVaut()) {
+            throw new AccessDeniedException("Accès réservé au compte VAUT");
+        }
+    }
+
+    public void checkDocumentAccess(String issuerCode, String entityCode) {
+        checkIssuerAccess(issuerCode);
+        checkEntityAccess(entityCode);
     }
 
     public void checkEntityAccess(String entityCode) {

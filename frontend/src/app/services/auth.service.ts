@@ -10,6 +10,13 @@ export interface UserProfile {
   legalEntityCode: string | null;
 }
 
+export interface AvailableProfile {
+  username: string;
+  fullName: string;
+  role: string;
+  allowedIssuer: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'dematex-token';
@@ -26,6 +33,10 @@ export class AuthService {
       }),
       switchMap(() => this.fetchMe())
     );
+  }
+
+  getProfiles(): Observable<AvailableProfile[]> {
+    return this.http.get<AvailableProfile[]>('/api/v1/auth/profiles');
   }
 
   fetchMe(): Observable<UserProfile> {
@@ -57,6 +68,10 @@ export class AuthService {
       }).subscribe();
     }
     this.clearToken();
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.token();
   }
 
   private clearToken(): void {

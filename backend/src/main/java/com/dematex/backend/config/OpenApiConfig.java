@@ -18,9 +18,9 @@ public class OpenApiConfig {
     public OpenAPI dematexOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Dematex - API de Supervision Réglementaire")
+                        .title("Dematex - API de Diffusion")
                         .description("API REST pour la gestion du cycle de vie des documents réglementaires, "
-                                + "accusés de réception (AR0→AR3) et supervision du SLA.")
+                                + "accusés de réception (AR0→AR3) et diffusion du SLA.")
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("Dematex Solutions")

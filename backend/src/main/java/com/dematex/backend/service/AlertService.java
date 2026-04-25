@@ -259,6 +259,7 @@ public class AlertService {
                         .resource(detected.getType().name())
                         .documentId(detected.getDocumentId())
                         .issuerCode(detected.getIssuerCode())
+                        .entityCode(detected.getEntityCode())
                         .status("ACTIVE")
                         .build());
             }
@@ -274,6 +275,7 @@ public class AlertService {
                         .resource(existing.getType().name())
                         .documentId(existing.getDocumentId())
                         .issuerCode(existing.getIssuerCode())
+                        .entityCode(existing.getEntityCode())
                         .status("RESOLVED")
                         .build());
             }

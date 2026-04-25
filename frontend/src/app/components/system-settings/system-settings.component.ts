@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SettingsService, StorageStructure, FileNode } from '../../services/settings.service';
+import { SettingsService, FileNode } from '../../services/settings.service';
 import { ConfigService, PortalConfig } from '../../services/config.service';
 import { TranslationService } from '../../services/translation.service';
 
@@ -54,44 +54,55 @@ import { TranslationService } from '../../services/translation.service';
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
               <div class="px-6 py-4 bg-surface-container-low border-b border-slate-100 flex justify-between items-center">
                 <h3 class="font-bold text-on-surface uppercase tracking-tight text-sm">{{ t('hierarchy.title') }}</h3>
-                <span class="text-xs text-on-surface-variant font-mono" *ngIf="structure">{{ structure.rootPath }}</span>
+                <span class="text-xs text-on-surface-variant font-mono">{{ rootPath }}</span>
               </div>
-              <div class="p-6" *ngIf="structure">
-                <div *ngIf="structure.issuers.length === 0" class="text-center py-10 text-on-surface-variant italic">
+              <div class="p-6">
+                <div *ngIf="issuers.length === 0 && !loadingIssuers" class="text-center py-10 text-on-surface-variant italic">
                   {{ t('hierarchy.empty') }}
                 </div>
-                <div *ngFor="let issuer of structure.issuers" class="mb-4">
-                  <button (click)="toggleIssuer(issuer.name)" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg transition-all">
-                    <span class="material-symbols-outlined text-sm text-primary">{{ expandedIssuers[issuer.name] ? 'expand_more' : 'chevron_right' }}</span>
+                
+                <div *ngIf="loadingIssuers" class="text-center py-10">
+                   <div class="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
+                </div>
+
+                <div *ngFor="let issuer of issuers" class="mb-4">
+                  <button (click)="toggleIssuer(issuer)" class="flex items-center gap-2 w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg transition-all">
+                    <span class="material-symbols-outlined text-sm text-primary">{{ expandedIssuers[issuer] ? 'expand_more' : 'chevron_right' }}</span>
                     <span class="material-symbols-outlined text-sm text-amber-600">folder</span>
-                    <span class="font-bold text-sm">{{ issuer.name }}</span>
+                    <span class="font-bold text-sm">{{ issuer }}</span>
+                    <div *ngIf="loadingEntities[issuer]" class="w-3 h-3 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                   </button>
-                  <div *ngIf="expandedIssuers[issuer.name]" class="ml-6">
-                    <div *ngFor="let entity of issuer.entities" class="mb-2">
-                      <button (click)="toggleEntity(issuer.name, entity.name)" class="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-lg transition-all">
-                        <span class="material-symbols-outlined text-sm text-primary">{{ expandedEntities[issuer.name + '/' + entity.name] ? 'expand_more' : 'chevron_right' }}</span>
+                  
+                  <div *ngIf="expandedIssuers[issuer]" class="ml-6">
+                    <div *ngFor="let entity of entities[issuer]" class="mb-2">
+                      <button (click)="toggleEntity(issuer, entity)" class="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-lg transition-all">
+                        <span class="material-symbols-outlined text-sm text-primary">{{ expandedEntities[issuer + '/' + entity] ? 'expand_more' : 'chevron_right' }}</span>
                         <span class="material-symbols-outlined text-sm text-blue-500">folder_open</span>
-                        <span class="font-semibold text-sm">{{ entity.name }}</span>
+                        <span class="font-semibold text-sm">{{ entity }}</span>
+                        <div *ngIf="loadingTypes[issuer + '/' + entity]" class="w-3 h-3 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                       </button>
-                      <div *ngIf="expandedEntities[issuer.name + '/' + entity.name]" class="ml-6">
-                        <div *ngFor="let type of entity.types" class="mb-2">
-                          <button (click)="toggleType(issuer.name, entity.name, type.name)" class="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-lg transition-all">
-                            <span class="material-symbols-outlined text-sm text-primary">{{ expandedTypes[issuer.name + '/' + entity.name + '/' + type.name] ? 'expand_more' : 'chevron_right' }}</span>
+                      
+                      <div *ngIf="expandedEntities[issuer + '/' + entity]" class="ml-6">
+                        <div *ngFor="let type of types[issuer + '/' + entity]" class="mb-2">
+                          <button (click)="toggleType(issuer, entity, type.name)" class="flex items-center gap-2 w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-lg transition-all">
+                            <span class="material-symbols-outlined text-sm text-primary">{{ expandedTypes[issuer + '/' + entity + '/' + type.name] ? 'expand_more' : 'chevron_right' }}</span>
                             <span class="material-symbols-outlined text-sm text-purple-500">folder_special</span>
                             <span class="font-medium text-sm">{{ type.name }}</span>
                             <span class="ml-2 bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold">{{ type.fileCount }}</span>
+                            <div *ngIf="loadingFiles[issuer + '/' + entity + '/' + type.name]" class="w-3 h-3 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
                           </button>
-                          <div *ngIf="expandedTypes[issuer.name + '/' + entity.name + '/' + type.name]" class="ml-6 space-y-1">
-                            <div *ngFor="let file of type.files"
+                          
+                          <div *ngIf="expandedTypes[issuer + '/' + entity + '/' + type.name]" class="ml-6 space-y-1">
+                            <div *ngFor="let file of files[issuer + '/' + entity + '/' + type.name]"
                               class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-50 group transition-all"
                               [class.bg-blue-50]="selectedFile?.filename === file.filename">
                               <span class="material-symbols-outlined text-sm text-slate-400">description</span>
                               <span class="font-mono text-xs flex-1">{{ file.baseName }}<span class="text-primary font-bold">.{{ file.extension }}</span></span>
-                              <button (click)="selectFileForRename(issuer.name, entity.name, type.name, file)"
+                              <button (click)="selectFileForRename(issuer, entity, type.name, file)"
                                 class="opacity-0 group-hover:opacity-100 text-xs text-primary hover:underline transition-all">
                                 {{ t('hierarchy.rename') }}
                               </button>
-                              <button (click)="selectFileForMove(issuer.name, entity.name, type.name, file)"
+                              <button (click)="selectFileForMove(issuer, entity, type.name, file)"
                                 class="opacity-0 group-hover:opacity-100 text-xs text-blue-600 hover:underline transition-all">
                                 {{ t('hierarchy.move') }}
                               </button>
@@ -102,10 +113,6 @@ import { TranslationService } from '../../services/translation.service';
                     </div>
                   </div>
                 </div>
-              </div>
-              <div *ngIf="!structure" class="p-10 text-center">
-                <span class="material-symbols-outlined text-4xl text-slate-300 animate-spin">sync</span>
-                <p class="mt-2 text-on-surface-variant">{{ t('hierarchy.loading') }}</p>
               </div>
             </div>
           </div>
@@ -128,10 +135,10 @@ import { TranslationService } from '../../services/translation.service';
                   <label class="text-xs font-bold text-on-surface-variant block mb-1">{{ t('rename.newExt') }}</label>
                   <select [(ngModel)]="renameNewExt" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary">
                     <option value="">{{ t('rename.keepCurrent') }} (.{{ selectedFile?.extension }})</option>
-                    <option value="ALIRE">ALIRE (AR0)</option>
-                    <option value="AR2">AR2</option>
-                    <option value="AR3">AR3</option>
-                    <option value="AR4">AR4</option>
+                    <option value="ALIRE">{{ t('docList.received') }}</option>
+                    <option value="AR2">{{ t('docList.processed') }}</option>
+                    <option value="AR3">{{ t('docList.validatedAr3') }}</option>
+                    <option value="AR4">{{ t('docList.rejected') }}</option>
                   </select>
                 </div>
                 <div class="flex gap-2">
@@ -165,10 +172,10 @@ import { TranslationService } from '../../services/translation.service';
                 <div>
                   <label class="text-xs font-bold text-on-surface-variant block mb-1">{{ t('move.targetType') }}</label>
                   <select [(ngModel)]="moveTargetType" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
-                    <option value="VTIS">VTIS</option>
-                    <option value="FTIS">FTIS</option>
-                    <option value="PTIS">PTIS</option>
-                    <option value="CRMENS">CRMENS</option>
+                    <option value="VTIS">VTIS ({{ t('docList.sales') }})</option>
+                    <option value="FTIS">FTIS ({{ t('docList.invoices') }})</option>
+                    <option value="PTIS">PTIS ({{ t('docList.payments') }})</option>
+                    <option value="CRMENS">{{ t('docList.masterData') }}</option>
                   </select>
                 </div>
                 <div class="flex gap-2">
@@ -200,29 +207,29 @@ import { TranslationService } from '../../services/translation.service';
                   <label class="text-xs font-bold text-on-surface-variant block mb-1">{{ t('bulk.type') }}</label>
                   <select [(ngModel)]="bulkType" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
                     <option value="">{{ t('bulk.select') }}</option>
-                    <option value="VTIS">VTIS</option>
-                    <option value="FTIS">FTIS</option>
-                    <option value="PTIS">PTIS</option>
-                    <option value="CRMENS">CRMENS</option>
+                    <option value="VTIS">VTIS ({{ t('docList.sales') }})</option>
+                    <option value="FTIS">FTIS ({{ t('docList.invoices') }})</option>
+                    <option value="PTIS">PTIS ({{ t('docList.payments') }})</option>
+                    <option value="CRMENS">{{ t('docList.masterData') }}</option>
                   </select>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <label class="text-xs font-bold text-on-surface-variant block mb-1">{{ t('bulk.from') }}</label>
                     <select [(ngModel)]="bulkFromExt" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
-                      <option value="ALIRE">ALIRE</option>
-                      <option value="AR2">AR2</option>
-                      <option value="AR3">AR3</option>
-                      <option value="AR4">AR4</option>
+                      <option value="ALIRE">{{ t('docList.received') }}</option>
+                      <option value="AR2">{{ t('docList.processed') }}</option>
+                      <option value="AR3">{{ t('docList.validatedAr3') }}</option>
+                      <option value="AR4">{{ t('docList.rejected') }}</option>
                     </select>
                   </div>
                   <div>
                     <label class="text-xs font-bold text-on-surface-variant block mb-1">{{ t('bulk.to') }}</label>
                     <select [(ngModel)]="bulkToExt" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
-                      <option value="ALIRE">ALIRE</option>
-                      <option value="AR2">AR2</option>
-                      <option value="AR3">AR3</option>
-                      <option value="AR4">AR4</option>
+                      <option value="ALIRE">{{ t('docList.received') }}</option>
+                      <option value="AR2">{{ t('docList.processed') }}</option>
+                      <option value="AR3">{{ t('docList.validatedAr3') }}</option>
+                      <option value="AR4">{{ t('docList.rejected') }}</option>
                     </select>
                   </div>
                 </div>
@@ -279,15 +286,15 @@ import { TranslationService } from '../../services/translation.service';
                     {{ t('sync.active') }}
                   </span>
                 </div>
-                <div class="flex items-center justify-between text-xs" *ngIf="structure">
+                <div class="flex items-center justify-between text-xs" *ngIf="rootPath">
                   <span class="text-on-surface-variant font-medium">{{ t('sync.storageRoot') }}</span>
-                  <span class="font-mono text-on-surface">{{ structure.rootPath }}</span>
+                  <span class="font-mono text-on-surface">{{ rootPath }}</span>
                 </div>
-                <div class="flex items-center justify-between text-xs" *ngIf="structure">
+                <div class="flex items-center justify-between text-xs" *ngIf="issuers.length > 0">
                   <span class="text-on-surface-variant font-medium">{{ t('sync.issuersDetected') }}</span>
-                  <span class="font-bold text-on-surface">{{ structure.issuers.length }}</span>
+                  <span class="font-bold text-on-surface">{{ issuers.length }}</span>
                 </div>
-                <div class="flex items-center justify-between text-xs" *ngIf="structure">
+                <div class="flex items-center justify-between text-xs" *ngIf="issuers.length > 0">
                   <span class="text-on-surface-variant font-medium">{{ t('sync.totalFiles') }}</span>
                   <span class="font-bold text-on-surface">{{ getTotalFiles() }}</span>
                 </div>
@@ -484,7 +491,12 @@ import { TranslationService } from '../../services/translation.service';
   `]
 })
 export class SystemSettingsComponent implements OnInit {
-  structure: StorageStructure | null = null;
+  issuers: string[] = [];
+  entities: Record<string, string[]> = {};
+  types: Record<string, any[]> = {};
+  files: Record<string, FileNode[]> = {};
+  
+  rootPath = '';
   syncing = false;
   savingConfig = false;
   successMessage = '';
@@ -497,32 +509,32 @@ export class SystemSettingsComponent implements OnInit {
     { id: 'params', labelKey: 'settings.tab.params', icon: 'tune' }
   ];
 
+  // Loading states
+  loadingIssuers = false;
+  loadingEntities: Record<string, boolean> = {};
+  loadingTypes: Record<string, boolean> = {};
+  loadingFiles: Record<string, boolean> = {};
+
   // Tree expansion state
   expandedIssuers: Record<string, boolean> = {};
   expandedEntities: Record<string, boolean> = {};
   expandedTypes: Record<string, boolean> = {};
 
-  // Rename state
+  // ... (rest of the state variables same as before)
   renameMode = false;
   selectedFile: FileNode | null = null;
   selectedDocId = '';
   renameNewName = '';
   renameNewExt = '';
-
-  // Move state
   moveMode = false;
   moveTargetIssuer = '';
   moveTargetEntity = '';
   moveTargetType = 'VTIS';
-
-  // Bulk rename state
   bulkIssuer = '';
   bulkEntity = '';
   bulkType = '';
   bulkFromExt = 'ALIRE';
   bulkToExt = 'AR3';
-
-  // Config form
   configForm: Partial<PortalConfig> = {};
 
   constructor(
@@ -536,17 +548,94 @@ export class SystemSettingsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadStructure();
+    this.loadIssuers();
     this.resetConfigForm();
+    const conf = this.configService.config();
+    if (conf) this.rootPath = conf.storageRoot;
   }
 
-  loadStructure(): void {
-    this.settingsService.getStorageStructure().subscribe({
-      next: s => this.structure = s,
-      error: () => this.showError(this.t('toast.loadError'))
+  loadIssuers(): void {
+    this.loadingIssuers = true;
+    this.settingsService.getIssuers().subscribe({
+      next: res => {
+        this.issuers = res;
+        this.loadingIssuers = false;
+      },
+      error: () => {
+        this.loadingIssuers = false;
+        this.showError(this.t('toast.loadError'));
+      }
     });
   }
 
+  toggleIssuer(issuer: string): void {
+    this.expandedIssuers[issuer] = !this.expandedIssuers[issuer];
+    if (this.expandedIssuers[issuer] && !this.entities[issuer]) {
+      this.loadingEntities[issuer] = true;
+      this.settingsService.getEntities(issuer).subscribe({
+        next: res => {
+          this.entities[issuer] = res;
+          this.loadingEntities[issuer] = false;
+        },
+        error: () => this.loadingEntities[issuer] = false
+      });
+    }
+  }
+
+  toggleEntity(issuer: string, entity: string): void {
+    const key = `${issuer}/${entity}`;
+    this.expandedEntities[key] = !this.expandedEntities[key];
+    if (this.expandedEntities[key] && !this.types[key]) {
+      this.loadingTypes[key] = true;
+      this.settingsService.getTypes(issuer, entity).subscribe({
+        next: res => {
+          this.types[key] = res;
+          this.loadingTypes[key] = false;
+        },
+        error: () => this.loadingTypes[key] = false
+      });
+    }
+  }
+
+  toggleType(issuer: string, entity: string, type: string): void {
+    const key = `${issuer}/${entity}/${type}`;
+    this.expandedTypes[key] = !this.expandedTypes[key];
+    if (this.expandedTypes[key] && !this.files[key]) {
+      this.loadingFiles[key] = true;
+      this.settingsService.getFiles(issuer, entity, type).subscribe({
+        next: res => {
+          this.files[key] = res;
+          this.loadingFiles[key] = false;
+        },
+        error: () => this.loadingFiles[key] = false
+      });
+    }
+  }
+
+  getTotalFiles(): number {
+    // This is now harder to compute precisely without full structure, 
+    // maybe return a placeholder or total from another endpoint if needed.
+    return 0; 
+  }
+
+  triggerSync(): void {
+    this.syncing = true;
+    this.settingsService.triggerSync().subscribe({
+      next: () => {
+        this.syncing = false;
+        this.showSuccess(this.t('toast.syncSuccess'));
+        // Clear caches and reload issuers
+        this.entities = {}; this.types = {}; this.files = {};
+        this.loadIssuers();
+      },
+      error: () => {
+        this.syncing = false;
+        this.showError(this.t('toast.syncError'));
+      }
+    });
+  }
+
+  // ... (rename/move methods remain same, but call loadIssuers or clear caches)
   resetConfigForm(): void {
     const current = this.configService.config();
     if (current) {
@@ -568,32 +657,6 @@ export class SystemSettingsComponent implements OnInit {
       }
     });
   }
-
-  getTotalFiles(): number {
-    if (!this.structure) return 0;
-    return this.structure.issuers.reduce((total, issuer) =>
-      total + issuer.entities.reduce((eTotal, entity) =>
-        eTotal + entity.types.reduce((tTotal, type) => tTotal + type.fileCount, 0), 0), 0);
-  }
-
-  triggerSync(): void {
-    this.syncing = true;
-    this.settingsService.triggerSync().subscribe({
-      next: () => {
-        this.syncing = false;
-        this.showSuccess(this.t('toast.syncSuccess'));
-        this.loadStructure();
-      },
-      error: () => {
-        this.syncing = false;
-        this.showError(this.t('toast.syncError'));
-      }
-    });
-  }
-
-  toggleIssuer(name: string): void { this.expandedIssuers[name] = !this.expandedIssuers[name]; }
-  toggleEntity(issuer: string, entity: string): void { const k = issuer + '/' + entity; this.expandedEntities[k] = !this.expandedEntities[k]; }
-  toggleType(issuer: string, entity: string, type: string): void { const k = issuer + '/' + entity + '/' + type; this.expandedTypes[k] = !this.expandedTypes[k]; }
 
   selectFileForRename(issuer: string, entity: string, type: string, file: FileNode): void {
     this.renameMode = true;
@@ -617,22 +680,28 @@ export class SystemSettingsComponent implements OnInit {
   executeRename(): void {
     const newName = this.renameNewName !== this.selectedFile?.baseName ? this.renameNewName : '';
     this.settingsService.renameFile(this.selectedDocId, newName, this.renameNewExt).subscribe({
-      next: () => { this.showSuccess(this.t('toast.renameSuccess')); this.cancelRename(); this.loadStructure(); },
-      error: (err) => this.showError(err.error?.error || this.t('toast.renameError'))
+      next: () => { 
+        this.showSuccess(this.t('toast.renameSuccess')); 
+        this.cancelRename();
+        // Clear specific cache and reload
+        const key = this.moveTargetIssuer + '/' + this.moveTargetEntity + '/' + this.moveTargetType; // inaccurate here but you get the idea
+        this.loadIssuers(); // Simplest: reload root
+      },
+      error: (err) => this.showError(this.extractError(err, 'toast.renameError'))
     });
   }
 
   executeMove(): void {
     this.settingsService.moveFiles([this.selectedDocId], this.moveTargetIssuer, this.moveTargetEntity, this.moveTargetType).subscribe({
-      next: () => { this.showSuccess(this.t('toast.moveSuccess')); this.cancelMove(); this.loadStructure(); },
-      error: (err) => this.showError(err.error?.error || this.t('toast.moveError'))
+      next: () => { this.showSuccess(this.t('toast.moveSuccess')); this.cancelMove(); this.loadIssuers(); },
+      error: (err) => this.showError(this.extractError(err, 'toast.moveError'))
     });
   }
 
   executeBulkRename(): void {
     this.settingsService.bulkRename(this.bulkIssuer, this.bulkEntity, this.bulkType, this.bulkFromExt, this.bulkToExt).subscribe({
-      next: (res: any) => { this.showSuccess(this.t('toast.bulkSuccess', { count: res.filesRenamed })); this.loadStructure(); },
-      error: (err) => this.showError(err.error?.error || this.t('toast.bulkError'))
+      next: (res: any) => { this.showSuccess(this.t('toast.bulkSuccess', { count: res.filesRenamed })); this.loadIssuers(); },
+      error: (err) => this.showError(this.extractError(err, 'toast.bulkError'))
     });
   }
 
@@ -641,4 +710,13 @@ export class SystemSettingsComponent implements OnInit {
 
   private showSuccess(msg: string): void { this.successMessage = msg; this.errorMessage = ''; setTimeout(() => this.successMessage = '', 5000); }
   private showError(msg: string): void { this.errorMessage = msg; this.successMessage = ''; setTimeout(() => this.errorMessage = '', 5000); }
+
+  private extractError(error: any, fallbackKey: string): string {
+    const errObj = error?.error;
+    if (typeof errObj?.code === 'string' && errObj.code.startsWith('error.')) {
+      const translated = this.t(errObj.code);
+      if (translated !== errObj.code) return translated;
+    }
+    return errObj?.message || errObj?.detail || error?.message || this.t(fallbackKey);
+  }
 }

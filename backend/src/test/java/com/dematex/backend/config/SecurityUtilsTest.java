@@ -60,4 +60,19 @@ class SecurityUtilsTest {
         assertDoesNotThrow(() -> securityUtils.checkIssuerAccess("Indigo"));
         assertThrows(AccessDeniedException.class, () -> securityUtils.checkIssuerAccess("Other"));
     }
+
+    @Test
+    void checkVautAccess_allowsOnlyVautUser() {
+        User vaut = User.builder().username("VAUT").role("ROLE_ADMIN").build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(vaut, null));
+
+        assertDoesNotThrow(securityUtils::checkVautAccess);
+
+        User otherAdmin = User.builder().username("OTHER_ADMIN").role("ROLE_ADMIN").build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(otherAdmin, null));
+
+        assertThrows(AccessDeniedException.class, securityUtils::checkVautAccess);
+    }
 }

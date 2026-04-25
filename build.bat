@@ -45,4 +45,6 @@ echo  Build termine avec succes.
 echo  - Frontend : frontend\dist\frontend
 echo  - Backend  : backend\target\backend-0.0.1-SNAPSHOT.jar
 echo ============================================
+
+docker compose up --build
 endlocal

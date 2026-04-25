@@ -4,11 +4,11 @@ Ce document décrit les choix d'architecture et les flux de données du portail 
 
 ## 1. Vue d'Ensemble
 
-L'application est conçue comme une couche de **Supervision et d'Audit** au-dessus de flux documentaires industriels. Elle utilise un système de design haute-fidélité (Guichet Unique) basé sur Tailwind CSS v4 pour offrir une expérience utilisateur moderne et ergonomique.
+L'application est conçue comme une couche de **Diffusion et d'Audit** au-dessus de flux documentaires industriels. Elle utilise un système de design haute-fidélité (Guichet Unique) basé sur Tailwind CSS v4 pour offrir une expérience utilisateur moderne et ergonomique.
 
 ## 2. Système de Design (High-Fidelity)
 
-Le portail implémente le système de design "Sovereign Ledger" :
+Le portail implémente le système de design "Guichet unique" :
 - **Bento Grid** : Structure modulaire du dashboard pour une lecture rapide des indicateurs clés.
 - **Timeline de Vie** : Visualisation granulaire des accusés de réception (AR-0 à AR-4).
 - **Identité Visuelle** : Palette de couleurs axée sur la confiance (Navy #00152a) et la clarté (Surface #f6fafe).

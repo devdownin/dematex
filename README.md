@@ -1,6 +1,6 @@
-# Dematex - Regulatory Document Supervision Portal
+# Dematex - Portail de Diffusion de Documents Réglementaires
 
-Professional Single Window for Dematerialization, serving as a portal for consultation, supervision, and audit of regulatory document flows.
+Professional Single Window for Dematerialization, serving as a portal for consultation, diffusion, and audit of regulatory document flows.
 
 ## Architecture
 

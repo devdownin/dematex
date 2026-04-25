@@ -61,7 +61,7 @@ import { TranslationService } from '../../services/translation.service';
           </div>
           <div class="pt-4 mt-4 border-t border-[#e4e9ed]">
             <div class="flex justify-between text-[10px] font-bold text-[#43474d]">
-              <span>LIMIT: 0.50%</span>
+              <span>{{ t('common.limit') }}: 0.50%</span>
               <span [ngClass]="errorRate() < 0.5 ? 'text-[#24a375]' : 'text-error'">
                 {{ errorRate() < 0.5 ? t('common.healthy') : t('common.critical') }}
               </span>
@@ -122,13 +122,6 @@ import { TranslationService } from '../../services/translation.service';
         </div>
 
         <div class="space-y-6">
-          <div class="bg-[#00152a] p-6 rounded-xl text-white">
-            <h4 class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2">{{ t('dash.globalEfficiency') }}</h4>
-            <p class="text-3xl font-black mb-4">{{ stats?.ar3CompletionRate | number:'1.1-1' }}%</p>
-            <p class="text-xs opacity-80 leading-relaxed mb-6">{{ t('dash.efficiencyDesc', { rate: (stats?.ar3CompletionRate | number:'1.0-0') || '0' }) }}</p>
-            <button class="w-full py-3 bg-white/10 hover:bg-white/20 transition-all rounded-lg font-bold text-xs uppercase tracking-widest">{{ t('dash.generateReport') }}</button>
-          </div>
-
           <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100" *ngIf="stats">
             <h4 class="text-[10px] font-black uppercase tracking-widest text-[#43474d] mb-6">{{ t('dash.queueComposition') }}</h4>
             <div class="space-y-4">

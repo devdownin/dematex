@@ -3,13 +3,14 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
 
-@Entity 
+@Entity
 @Table(name = "documents", indexes = {
     @Index(name = "idx_docs_entity", columnList = "entityCode"),
     @Index(name = "idx_docs_type", columnList = "type"),
     @Index(name = "idx_docs_period", columnList = "period"),
-    @Index(name = "idx_docs_status", columnList = "status")
-}) 
+    @Index(name = "idx_docs_status", columnList = "status"),
+    @Index(name = "idx_docs_updated_at", columnList = "updatedAt")
+})
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class Document {
     @Id private String documentId;
@@ -23,6 +24,8 @@ public class Document {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant lastSeenAt;
+    private Long fileSize;
+    private String originalFilename;
     @Lob private byte[] content;
 
     @OneToMany(mappedBy = "documentId", fetch = FetchType.LAZY)

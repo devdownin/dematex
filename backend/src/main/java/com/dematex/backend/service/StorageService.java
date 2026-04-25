@@ -1,5 +1,6 @@
 package com.dematex.backend.service;
 
+import com.dematex.backend.config.SecurityUtils;
 import com.dematex.backend.exception.BusinessException;
 import com.dematex.backend.exception.ResourceNotFoundException;
 import com.dematex.backend.exception.StorageException;
@@ -27,6 +28,7 @@ public class StorageService {
 
     private final DocumentRepository documentRepository;
     private final AuditLogRepository auditLogRepository;
+    private final SecurityUtils securityUtils;
 
     @Value("${storage.root:./regulatory_files}")
     private String storageRoot;
@@ -103,6 +105,87 @@ public class StorageService {
         return result;
     }
 
+    public List<String> getIssuers(String allowedIssuer) {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        if (!Files.exists(root)) return List.of();
+        try (Stream<Path> paths = Files.list(root)) {
+            return paths.filter(Files::isDirectory)
+                    .filter(p -> allowedIssuer == null || p.getFileName().toString().equals(allowedIssuer))
+                    .map(p -> p.getFileName().toString())
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            log.error("Error listing issuers", e);
+            return List.of();
+        }
+    }
+
+    public List<String> getEntities(String issuer) {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        Path issuerPath = root.resolve(issuer);
+        if (!Files.exists(issuerPath)) return List.of();
+        try (Stream<Path> paths = Files.list(issuerPath)) {
+            return paths.filter(Files::isDirectory)
+                    .map(p -> p.getFileName().toString())
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            log.error("Error listing entities", e);
+            return List.of();
+        }
+    }
+
+    public List<Map<String, Object>> getTypes(String issuer, String entity) {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        Path entityPath = root.resolve(issuer).resolve(entity);
+        if (!Files.exists(entityPath)) return List.of();
+        try (Stream<Path> paths = Files.list(entityPath)) {
+            return paths.filter(Files::isDirectory)
+                    .sorted()
+                    .map(p -> {
+                        Map<String, Object> type = new LinkedHashMap<>();
+                        type.put("name", p.getFileName().toString());
+                        try (Stream<Path> files = Files.list(p)) {
+                            type.put("fileCount", files.filter(Files::isRegularFile).count());
+                        } catch (IOException e) {
+                            type.put("fileCount", 0);
+                        }
+                        return type;
+                    })
+                    .toList();
+        } catch (IOException e) {
+            log.error("Error listing types", e);
+            return List.of();
+        }
+    }
+
+    public List<Map<String, String>> getFiles(String issuer, String entity, String type) {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        Path typePath = root.resolve(issuer).resolve(entity).resolve(type);
+        if (!Files.exists(typePath)) return List.of();
+        try (Stream<Path> paths = Files.list(typePath)) {
+            return paths.filter(Files::isRegularFile)
+                    .sorted()
+                    .map(p -> {
+                        String filename = p.getFileName().toString();
+                        int lastDot = filename.lastIndexOf('.');
+                        Map<String, String> file = new LinkedHashMap<>();
+                        file.put("filename", filename);
+                        file.put("baseName", lastDot > 0 ? filename.substring(0, lastDot) : filename);
+                        file.put("extension", lastDot > 0 ? filename.substring(lastDot + 1) : "");
+                        try {
+                            file.put("size", String.valueOf(Files.size(p)));
+                            file.put("lastModified", Files.getLastModifiedTime(p).toInstant().toString());
+                        } catch (IOException ignored) {}
+                        return file;
+                    })
+                    .toList();
+        } catch (IOException e) {
+            log.error("Error listing files", e);
+            return List.of();
+        }
+    }
+
     /**
      * Renomme un fichier identifié par son documentId.
      * @param documentId L'ID composite du document (issuer_entity_baseName)
@@ -144,9 +227,12 @@ public class StorageService {
             log.info("Fichier renommé: {} -> {}", currentFile, newPath);
 
             auditLogRepository.save(AuditLog.builder()
-                    .user("admin")
+                    .user(getCurrentUsername())
                     .action("FILE_RENAME")
                     .resource(documentId)
+                    .documentId(documentId)
+                    .issuerCode(doc.getIssuerCode())
+                    .entityCode(doc.getEntityCode())
                     .status(currentFilename + " → " + newFilename)
                     .build());
 
@@ -185,9 +271,12 @@ public class StorageService {
                 movedPaths.add(newPath.toString());
 
                 auditLogRepository.save(AuditLog.builder()
-                        .user("admin")
+                        .user(getCurrentUsername())
                         .action("FILE_MOVE")
                         .resource(docId)
+                        .documentId(docId)
+                        .issuerCode(targetIssuer)
+                        .entityCode(targetEntity)
                         .status(targetIssuer + "/" + targetEntity + "/" + targetType)
                         .build());
             }
@@ -228,9 +317,11 @@ public class StorageService {
 
             if (count > 0) {
             auditLogRepository.save(AuditLog.builder()
-                    .user("admin")
+                    .user(getCurrentUsername())
                     .action("BULK_RENAME")
                     .resource(issuer + "/" + entity + "/" + type)
+                    .issuerCode(issuer)
+                    .entityCode(entity)
                     .status(fromExtension + " → " + toExtension + " (" + count + " fichiers)")
                     .build());
         }
@@ -295,9 +386,12 @@ public class StorageService {
             log.info("Fichier déposé: {}", targetFile);
 
             auditLogRepository.save(AuditLog.builder()
-                    .user("admin")
+                    .user(getCurrentUsername())
                     .action("FILE_UPLOAD")
                     .resource(destinataire + "/" + entity + "/" + type + "/" + finalFilename)
+                    .documentId(destinataire + "_" + entity + "_" + baseName)
+                    .issuerCode(destinataire)
+                    .entityCode(entity)
                     .status(statut)
                     .build());
 
@@ -379,5 +473,13 @@ public class StorageService {
         }
 
         throw new IOException("Fichier introuvable pour le document: " + documentId);
+    }
+
+    private String getCurrentUsername() {
+        try {
+            return securityUtils.getCurrentUser().getUsername();
+        } catch (org.springframework.security.access.AccessDeniedException ex) {
+            return "system";
+        }
     }
 }

@@ -28,6 +28,35 @@ public class SettingsController {
         return ResponseEntity.ok(storageService.getStructure(securityUtils.getEffectiveIssuer()));
     }
 
+    @Operation(summary = "Liste des émetteurs (racine)", description = "Retourne la liste des émetteurs disponibles pour le chargement paresseux")
+    @GetMapping("/storage/issuers")
+    public List<String> getIssuers() {
+        return storageService.getIssuers(securityUtils.getEffectiveIssuer());
+    }
+
+    @Operation(summary = "Liste des entités d'un émetteur", description = "Retourne les entités pour un émetteur donné")
+    @GetMapping("/storage/issuers/{issuer}/entities")
+    public List<String> getEntities(@PathVariable String issuer) {
+        securityUtils.checkIssuerAccess(issuer);
+        return storageService.getEntities(issuer);
+    }
+
+    @Operation(summary = "Liste des types d'une entité", description = "Retourne les types de documents pour une entité donnée")
+    @GetMapping("/storage/issuers/{issuer}/entities/{entity}/types")
+    public List<Map<String, Object>> getTypes(@PathVariable String issuer, @PathVariable String entity) {
+        securityUtils.checkIssuerAccess(issuer);
+        securityUtils.checkEntityAccess(entity);
+        return storageService.getTypes(issuer, entity);
+    }
+
+    @Operation(summary = "Liste des fichiers d'un type", description = "Retourne les fichiers pour un type de document donné")
+    @GetMapping("/storage/issuers/{issuer}/entities/{entity}/types/{type}/files")
+    public List<Map<String, String>> getFiles(@PathVariable String issuer, @PathVariable String entity, @PathVariable String type) {
+        securityUtils.checkIssuerAccess(issuer);
+        securityUtils.checkEntityAccess(entity);
+        return storageService.getFiles(issuer, entity, type);
+    }
+
     @Operation(summary = "Renommer un fichier", description = "Renomme un fichier (nom et/ou extension). Déclenche automatiquement la mise à jour de l'index H2.")
     @PostMapping("/storage/rename")
     public Map<String, String> renameFile(@RequestBody RenameRequest request) {

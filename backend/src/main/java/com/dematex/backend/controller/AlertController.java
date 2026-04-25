@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/alerts")
 @RequiredArgsConstructor
-@Tag(name = "Alerts", description = "API de supervision des anomalies et alertes")
+@Tag(name = "Alerts", description = "API de diffusion des anomalies et alertes")
 public class AlertController {
     private final AlertService alertService;
     private final SecurityUtils securityUtils;

@@ -84,4 +84,40 @@ public interface DocumentRepository extends JpaRepository<Document, String> {
     @Transactional
     @Query("DELETE FROM Document d WHERE d.lastSeenAt < :threshold OR d.lastSeenAt IS NULL")
     void deleteByLastSeenAtBefore(@Param("threshold") Instant threshold);
+
+    @Query("SELECT d.documentId FROM Document d WHERE d.documentId IN :ids")
+    List<String> findExistingIds(@Param("ids") List<String> ids);
+
+    @Query("SELECT MAX(COALESCE(d.lastSeenAt, d.updatedAt, d.createdAt)) FROM Document d")
+    Instant findLatestActivityTimestamp();
+
+    List<Document> findByIssuerCodeAndEntityCodeAndType(String issuerCode, String entityCode, DocumentType type);
+
+    List<Document> findByIssuerCodeAndEntityCode(String issuerCode, String entityCode);
+
+    List<Document> findByIssuerCode(String issuerCode);
+
+    @Query("SELECT d FROM Document d WHERE " +
+           "(:issuerCode IS NULL OR d.issuerCode = :issuerCode) " +
+           "AND (:entityCode IS NULL OR d.entityCode = :entityCode) " +
+           "AND (:sinceTs IS NULL OR d.updatedAt >= :sinceTs) " +
+           "AND (:cursorTs IS NULL OR :cursorDocId IS NULL OR " +
+           "     d.updatedAt > :cursorTs OR (d.updatedAt = :cursorTs AND d.documentId > :cursorDocId)) " +
+           "ORDER BY d.updatedAt ASC, d.documentId ASC")
+    List<Document> findDeliveriesSince(
+            @Param("issuerCode") String issuerCode,
+            @Param("entityCode") String entityCode,
+            @Param("sinceTs") Instant sinceTs,
+            @Param("cursorTs") Instant cursorTs,
+            @Param("cursorDocId") String cursorDocId,
+            Pageable pageable);
+
+    @Query("SELECT COUNT(d) FROM Document d WHERE " +
+           "(:issuerCode IS NULL OR d.issuerCode = :issuerCode) " +
+           "AND (:entityCode IS NULL OR d.entityCode = :entityCode) " +
+           "AND (:sinceTs IS NULL OR d.updatedAt >= :sinceTs)")
+    long countDeliveriesSince(
+            @Param("issuerCode") String issuerCode,
+            @Param("entityCode") String entityCode,
+            @Param("sinceTs") Instant sinceTs);
 }

@@ -47,14 +47,42 @@ describe('DocumentService', () => {
   });
 
   it('should fetch audit logs', () => {
-    const mockLogs = [{ action: 'CREATE' }];
+    const mockLogs = { items: [{ id: 1, action: 'CREATE', timestamp: '2026-04-25T00:00:00Z', user: 'admin' }], nextCursor: null, hasMore: false, totalCount: 1 };
 
-    service.getAuditLogs().subscribe(logs => {
-      expect(logs).toHaveLength(1);
+    service.getAuditLogs({ limit: 25 }).subscribe(response => {
+      expect(response.items).toHaveLength(1);
+      expect(response.totalCount).toBe(1);
     });
 
-    const req = httpMock.expectOne('/api/v1/audit');
+    const req = httpMock.expectOne('/api/v1/audit?limit=25');
     expect(req.request.method).toBe('GET');
     req.flush(mockLogs);
+  });
+
+  it('should post an acknowledgement update', () => {
+    service.addAcknowledgement('ENT1', 'DOC-1', { type: 'AR3' as any, details: 'validated' }).subscribe();
+
+    const req = httpMock.expectOne('/api/v1/entities/ENT1/documents/DOC-1/acknowledgements');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ type: 'AR3', details: 'validated' });
+    req.flush(null);
+  });
+
+  it('should upload a document as multipart form-data', () => {
+    const formData = new FormData();
+    formData.append('destinataire', 'Indigo');
+    formData.append('entity', 'ENT1');
+    formData.append('type', 'FTIS');
+    formData.append('statut', 'ALIRE');
+    formData.append('file', new Blob(['demo']), 'demo.zip');
+
+    service.uploadDocument(formData).subscribe(response => {
+      expect(response.status).toBe('uploaded');
+    });
+
+    const req = httpMock.expectOne('/api/v1/documents/upload');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body instanceof FormData).toBe(true);
+    req.flush({ path: '/tmp/demo.zip', status: 'uploaded' });
   });
 });
