@@ -48,7 +48,7 @@ export class TranslationService {
 
   private async loadTranslations(lang: Lang): Promise<void> {
     try {
-      const data = await firstValueFrom(this.http.get<Record<string, string>>(`/assets/i18n/${lang}.json`));
+      const data = await firstValueFrom(this.http.get<Record<string, string>>(`/i18n/${lang}.json`));
       this.translations.set(data);
     } catch (err) {
       console.error(`Could not load translations for ${lang}`, err);

@@ -23,7 +23,7 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: (authService: AuthService, configService: ConfigService, translationService: TranslationService) => () =>
         authService.autoLogin().pipe(
-          switchMap(() => configService.loadConfig()),
+          switchMap(() => configService.loadConfig().pipe(catchError(() => of(null)))),
           switchMap(() => translationService.init()),
           catchError(() => of(null))
         ),
