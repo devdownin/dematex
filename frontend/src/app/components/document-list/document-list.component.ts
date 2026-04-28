@@ -1,12 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule, Router } from '@angular/router';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { DocumentService } from '../../services/document.service';
+import { SettingsService } from '../../services/settings.service';
 import { ConfigService } from '../../services/config.service';
 import { ClientType, DocumentDTO, DashboardStats } from '../../models/document.model';
 import { TranslationService } from '../../services/translation.service';
+import { Subject, debounceTime, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-document-list',
@@ -75,7 +77,8 @@ import { TranslationService } from '../../services/translation.service';
         </div>
 
         <!-- Table Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col h-[600px]">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col h-[600px] relative">
+          
           <div class="px-6 py-4 flex flex-wrap justify-between items-center bg-white border-b border-slate-100 gap-4 flex-none">
             <div class="flex gap-6 items-center">
               <div class="flex items-center gap-2">
@@ -103,20 +106,69 @@ import { TranslationService } from '../../services/translation.service';
           </div>
 
           <!-- Header -->
-          <div class="bg-surface-container-low text-[10px] font-black uppercase text-on-surface-variant flex-none grid grid-cols-[2fr_1fr_1fr_1fr_1.5fr_1fr_1fr_80px] px-6 py-3 border-b">
-            <div>{{ t('docList.colDocId') }}</div>
-            <div>{{ t('docList.colType') }}</div>
-            <div>{{ t('docList.colPeriod') }}</div>
-            <div>{{ t('docList.colClientType') }}</div>
-            <div>{{ t('docList.colEntityCode') }}</div>
-            <div>{{ t('docList.colIssuer') }}</div>
-            <div>{{ t('docList.colStatus') }}</div>
+          <div class="bg-surface-container-low text-[10px] font-black uppercase text-on-surface-variant flex-none grid grid-cols-[2fr_1fr_1fr_1fr_1.5fr_1fr_1fr_80px] px-6 py-3 border-b select-none">
+            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" (click)="sort('documentId')">
+              {{ t('docList.colDocId') }}
+              <span class="material-symbols-outlined text-[14px]" *ngIf="currentSort.column === 'documentId'">
+                {{ currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" (click)="sort('type')">
+              {{ t('docList.colType') }}
+              <span class="material-symbols-outlined text-[14px]" *ngIf="currentSort.column === 'type'">
+                {{ currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" (click)="sort('period')">
+              {{ t('docList.colPeriod') }}
+              <span class="material-symbols-outlined text-[14px]" *ngIf="currentSort.column === 'period'">
+                {{ currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" (click)="sort('clientType')">
+              {{ t('docList.colClientType') }}
+              <span class="material-symbols-outlined text-[14px]" *ngIf="currentSort.column === 'clientType'">
+                {{ currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" (click)="sort('entityCode')">
+              {{ t('docList.colEntityCode') }}
+              <span class="material-symbols-outlined text-[14px]" *ngIf="currentSort.column === 'entityCode'">
+                {{ currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" (click)="sort('issuerCode')">
+              {{ t('docList.colIssuer') }}
+              <span class="material-symbols-outlined text-[14px]" *ngIf="currentSort.column === 'issuerCode'">
+                {{ currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+              </span>
+            </div>
+            <div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors" (click)="sort('status')">
+              {{ t('docList.colStatus') }}
+              <span class="material-symbols-outlined text-[14px]" *ngIf="currentSort.column === 'status'">
+                {{ currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+              </span>
+            </div>
             <div class="text-right">{{ t('docList.colActions') }}</div>
           </div>
 
           <!-- Virtual Scroll Body -->
           <cdk-virtual-scroll-viewport itemSize="60" class="flex-1 scroll-container">
-            <div *cdkVirtualFor="let doc of documents" class="grid grid-cols-[2fr_1fr_1fr_1fr_1.5fr_1fr_1fr_80px] px-6 py-4 items-center border-b border-slate-100 hover:bg-primary/5 transition-colors">
+            <!-- Skeleton Rows -->
+            <ng-container *ngIf="isLoading && documents.length === 0">
+              <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]" class="grid grid-cols-[2fr_1fr_1fr_1fr_1.5fr_1fr_1fr_80px] px-6 py-4 items-center border-b border-slate-100 h-[60px] animate-pulse">
+                <div class="h-4 bg-slate-100 rounded w-3/4"></div>
+                <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div class="h-4 bg-slate-100 rounded w-2/3"></div>
+                <div class="flex justify-end"><div class="w-8 h-8 bg-slate-100 rounded-full"></div></div>
+              </div>
+            </ng-container>
+
+            <div *cdkVirtualFor="let doc of documents; trackBy: trackByDocId" class="grid grid-cols-[2fr_1fr_1fr_1fr_1.5fr_1fr_1fr_80px] px-6 py-4 items-center border-b border-slate-100 hover:bg-primary/5 transition-colors h-[60px]">
               <div class="font-bold text-sm text-primary truncate pr-4">{{doc.documentId}}</div>
               <div>
                 <span class="bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tighter">{{doc.type}}</span>
@@ -151,6 +203,37 @@ import { TranslationService } from '../../services/translation.service';
 
         <div class="space-y-4">
           <div>
+            <label class="block text-[10px] font-black uppercase text-on-surface-variant mb-1">{{ t('docList.search') }}</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                <span class="material-symbols-outlined text-sm">search</span>
+              </span>
+              <input
+                [ngModel]="searchQuery"
+                (ngModelChange)="onSearchInputChange($event)"
+                class="w-full bg-surface-container-low border-none rounded-lg text-sm pl-9 p-2 focus:ring-2 focus:ring-primary/20"
+                [placeholder]="t('nav.search')"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-black uppercase text-on-surface-variant mb-1">{{ t('docList.filterIssuer') || 'Émetteur' }}</label>
+            <select [(ngModel)]="filters.issuerCode" (change)="onIssuerChange()" class="w-full bg-surface-container-low border-none rounded-lg text-sm p-2 focus:ring-2 focus:ring-primary/20">
+              <option value="">{{ t('common.all') }}</option>
+              <option *ngFor="let issuer of availableIssuers" [value]="issuer">{{ issuer }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-black uppercase text-on-surface-variant mb-1">{{ t('docList.filterEntity') || 'Entité' }}</label>
+            <select [(ngModel)]="filters.entityCode" class="w-full bg-surface-container-low border-none rounded-lg text-sm p-2 focus:ring-2 focus:ring-primary/20" [disabled]="!filters.issuerCode">
+              <option value="">{{ t('common.all') }}</option>
+              <option *ngFor="let entity of availableEntities" [value]="entity">{{ entity }}</option>
+            </select>
+          </div>
+
+          <div>
             <label class="block text-[10px] font-black uppercase text-on-surface-variant mb-1">{{ t('docList.filterDocType') }}</label>
             <select [(ngModel)]="filters.type" class="w-full bg-surface-container-low border-none rounded-lg text-sm p-2 focus:ring-2 focus:ring-primary/20">
               <option value="">{{ t('docList.allTypes') }}</option>
@@ -176,10 +259,10 @@ import { TranslationService } from '../../services/translation.service';
             <label class="block text-[10px] font-black uppercase text-on-surface-variant mb-1">{{ t('docList.filterClientType') }}</label>
             <select [(ngModel)]="filters.clientType" class="w-full bg-surface-container-low border-none rounded-lg text-sm p-2 focus:ring-2 focus:ring-primary/20">
               <option value="">{{ t('docList.allClientTypes') }}</option>
-              <option [value]="ClientType.B2C">B2C</option>
-              <option [value]="ClientType.B2BD">B2B France</option>
-              <option [value]="ClientType.B2BI">B2B International</option>
-              <option [value]="ClientType.B2G">B2G</option>
+              <option [value]="ClientType.B2C">{{ t('clientType.b2c') }}</option>
+              <option [value]="ClientType.B2BD">{{ t('clientType.b2bd') }}</option>
+              <option [value]="ClientType.B2BI">{{ t('clientType.b2bi') }}</option>
+              <option [value]="ClientType.B2G">{{ t('clientType.b2g') }}</option>
             </select>
           </div>
 
@@ -218,7 +301,7 @@ import { TranslationService } from '../../services/translation.service';
   `,
   styles: [`:host { display: block; }`]
 })
-export class DocumentListComponent implements OnInit {
+export class DocumentListComponent implements OnInit, OnDestroy {
   readonly ClientType = ClientType;
   documents: DocumentDTO[] = [];
   stats?: DashboardStats;
@@ -227,6 +310,14 @@ export class DocumentListComponent implements OnInit {
   nextCursor: string | null = null;
   totalCount = 0;
   searchQuery = '';
+  isLoading = false;
+  private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
+  availableIssuers: string[] = [];
+  availableEntities: string[] = [];
+
+  currentSort: { column: string; direction: 'asc' | 'desc' } = { column: '', direction: 'asc' };
 
   filters = {
     type: '',
@@ -234,14 +325,18 @@ export class DocumentListComponent implements OnInit {
     clientType: '',
     periodStart: '',
     periodEnd: '',
+    issuerCode: '',
+    entityCode: '',
     lateOnly: false,
     limit: 15
   };
 
   constructor(
     private documentService: DocumentService,
+    private settingsService: SettingsService,
     private configService: ConfigService,
     private route: ActivatedRoute,
+    private router: Router,
     private translationService: TranslationService
   ) {}
 
@@ -250,41 +345,155 @@ export class DocumentListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.route.queryParamMap.subscribe(params => {
-      this.searchQuery = params.get('q')?.trim() || '';
+    console.log('DocumentListComponent init');
+    this.loadAvailableIssuers();
+
+    // Debounce the search input from the side panel
+    this.searchSubject.pipe(
+      debounceTime(400),
+      takeUntil(this.destroy$)
+    ).subscribe(q => {
+      this.syncUrlAndReload({ q: q || null });
+    });
+
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      // Restore filters from URL
+      this.filters.type = params.get('type') || '';
+      this.filters.status = params.get('status') || '';
+      this.filters.clientType = params.get('clientType') || '';
+      this.filters.periodStart = params.get('periodStart') || '';
+      this.filters.periodEnd = params.get('periodEnd') || '';
+      this.filters.issuerCode = params.get('issuerCode') || '';
+      this.filters.entityCode = params.get('entityCode') || '';
+      this.filters.lateOnly = params.get('lateOnly') === 'true';
+      this.searchQuery = params.get('q') || '';
+
+      if (this.filters.issuerCode) {
+        this.onIssuerChange(false); // reload entities but don't reset entityCode
+      }
+
       this.loadDocuments(true);
     });
     this.documentService.getStats().subscribe(s => this.stats = s);
   }
 
-  loadDocuments(reset = false): void {
-    const entityCode = this.configService.config()?.entityCode || 'ENT_ALPHA';
-    const cursor = reset ? null : this.nextCursor;
-    const request = this.searchQuery
-      ? this.documentService.searchDocuments(this.searchQuery, { entityCode, cursor, ...this.filters })
-      : this.documentService.getDocuments(entityCode, { ...this.filters, cursor, q: this.searchQuery || null });
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
-    request.subscribe(res => {
-      this.documents = reset ? res.items : [...this.documents, ...res.items];
-      this.nextCursor = res.nextCursor;
-      this.hasMore = res.hasMore;
-      this.totalCount = res.totalCount;
+  loadAvailableIssuers(): void {
+    this.settingsService.getIssuers().subscribe(res => {
+      this.availableIssuers = res;
     });
   }
 
+  onIssuerChange(resetEntity = true): void {
+    if (resetEntity) this.filters.entityCode = '';
+    this.availableEntities = [];
+    if (this.filters.issuerCode) {
+      this.settingsService.getEntities(this.filters.issuerCode).subscribe(res => {
+        this.availableEntities = res;
+      });
+    }
+  }
+
+  onSearchInputChange(val: string): void {
+    this.searchSubject.next(val);
+  }
+
+  loadDocuments(reset = false): void {
+    if (this.isLoading) return;
+    
+    const config = this.configService.config();
+    const entityCode = this.filters.entityCode || config?.entityCode || 'ALL';
+    const cursor = reset ? null : this.nextCursor;
+    
+    this.isLoading = true;
+    
+    const params = { ...this.filters, entityCode, cursor, q: this.searchQuery || null };
+
+    const request = this.searchQuery
+      ? this.documentService.searchDocuments(this.searchQuery, params)
+      : this.documentService.getDocuments(entityCode, params);
+
+    request.subscribe({
+      next: (res) => {
+        this.documents = reset ? res.items : [...this.documents, ...res.items];
+        this.nextCursor = res.nextCursor;
+        this.hasMore = res.hasMore;
+        this.totalCount = res.totalCount;
+        this.isLoading = false;
+        if (this.currentSort.column) {
+          this.applySort();
+        }
+      },
+      error: (err) => {
+        console.error('Error loading documents', err);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  sort(column: string): void {
+    if (this.currentSort.column === column) {
+      this.currentSort.direction = this.currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.currentSort.column = column;
+      this.currentSort.direction = 'asc';
+    }
+    this.applySort();
+  }
+
+  private applySort(): void {
+    const { column, direction } = this.currentSort;
+    this.documents.sort((a, b) => {
+      const valA = (a as any)[column];
+      const valB = (b as any)[column];
+      if (valA < valB) return direction === 'asc' ? -1 : 1;
+      if (valA > valB) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    this.documents = [...this.documents];
+  }
+
+  trackByDocId(_index: number, doc: DocumentDTO): string {
+    return doc.documentId;
+  }
+
   applyFilters(): void {
-    this.loadDocuments(true);
+    this.syncUrlAndReload();
   }
 
   resetFilters(): void {
-    this.filters = { type: '', status: '', clientType: '', periodStart: '', periodEnd: '', lateOnly: false, limit: 15 };
-    this.loadDocuments(true);
+    this.filters = { type: '', status: '', clientType: '', periodStart: '', periodEnd: '', issuerCode: '', entityCode: '', lateOnly: false, limit: 15 };
+    this.searchQuery = '';
+    this.syncUrlAndReload();
+  }
+
+  private syncUrlAndReload(extra?: any): void {
+    const queryParams = {
+      type: this.filters.type || null,
+      status: this.filters.status || null,
+      clientType: this.filters.clientType || null,
+      periodStart: this.filters.periodStart || null,
+      periodEnd: this.filters.periodEnd || null,
+      issuerCode: this.filters.issuerCode || null,
+      entityCode: this.filters.entityCode || null,
+      lateOnly: this.filters.lateOnly || null,
+      q: this.searchQuery || null,
+      ...extra
+    };
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'merge'
+    });
   }
 
   loadMore(): void {
-    if (!this.hasMore) {
-      return;
-    }
+    if (!this.hasMore) return;
     this.loadDocuments(false);
   }
 

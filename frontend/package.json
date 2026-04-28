@@ -46,9 +46,5 @@
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
     "vitest": "^4.0.8"
-  },
-  "optionalDependencies": {
-    "@tailwindcss/oxide-win32-x64-msvc": "^4.2.4",
-    "lightningcss-win32-x64-msvc": "^1.32.0"
   }
 }

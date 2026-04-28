@@ -1,5 +1,6 @@
 package com.dematex.backend.controller;
 
+import com.dematex.backend.config.SecurityUtils;
 import com.dematex.backend.dto.PortalConfigDTO;
 import com.dematex.backend.model.AuditLog;
 import com.dematex.backend.repository.AuditLogRepository;
@@ -25,6 +26,7 @@ public class PortalConfigController {
 
     private final AuditLogRepository auditLogRepository;
     private final com.dematex.backend.repository.PortalConfigRepository portalConfigRepository;
+    private final SecurityUtils securityUtils;
 
     @Value("${portal.company-name:Dematex}")
     private String companyName;
@@ -70,9 +72,11 @@ public class PortalConfigController {
         portalConfigRepository.save(config);
 
         auditLogRepository.save(AuditLog.builder()
-                .user("admin")
+                .user(securityUtils.getCurrentUser().getUsername())
                 .action("CONFIG_UPDATE")
                 .resource("portal-config")
+                .issuerCode(securityUtils.getCurrentUser().getAllowedIssuer())
+                .entityCode(securityUtils.getCurrentUser().getLegalEntityCode())
                 .status("Paramètres persistés")
                 .build());
 

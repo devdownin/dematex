@@ -1,4 +1,4 @@
-# Contributing to Dematex
+# Contributing to MACI/SRESEAUX
 
 We welcome contributions! Please follow these guidelines:
 

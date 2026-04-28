@@ -41,6 +41,22 @@ export class SettingsService {
     return this.http.get<StorageStructure>(`${this.apiUrl}/storage/structure`);
   }
 
+  getIssuers(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/storage/issuers`);
+  }
+
+  getEntities(issuer: string): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/storage/issuers/${issuer}/entities`);
+  }
+
+  getTypes(issuer: string, entity: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/storage/issuers/${issuer}/entities/${entity}/types`);
+  }
+
+  getFiles(issuer: string, entity: string, type: string): Observable<FileNode[]> {
+    return this.http.get<FileNode[]>(`${this.apiUrl}/storage/issuers/${issuer}/entities/${entity}/types/${type}/files`);
+  }
+
   renameFile(documentId: string, newName: string, newExtension: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/storage/rename`, { documentId, newName, newExtension });
   }

@@ -1,5 +1,6 @@
 package com.dematex.backend.controller;
 
+import com.dematex.backend.config.SecurityUtils;
 import com.dematex.backend.dto.AlertSummary;
 import com.dematex.backend.model.Alert;
 import com.dematex.backend.service.AlertService;
@@ -15,19 +16,20 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/alerts")
 @RequiredArgsConstructor
-@Tag(name = "Alerts", description = "API de supervision des anomalies et alertes")
+@Tag(name = "Alerts", description = "API de diffusion des anomalies et alertes")
 public class AlertController {
     private final AlertService alertService;
+    private final SecurityUtils securityUtils;
 
     @Operation(summary = "Liste des alertes actives")
     @GetMapping
     public List<Alert> getActiveAlerts() {
-        return alertService.getActiveAlerts();
+        return alertService.getActiveAlerts(securityUtils.getEffectiveIssuer());
     }
 
     @Operation(summary = "Synthese des alertes")
     @GetMapping("/summary")
     public AlertSummary getSummary() {
-        return alertService.getSummary();
+        return alertService.getSummary(securityUtils.getEffectiveIssuer());
     }
 }

@@ -1,4 +1,4 @@
-# Propositions d'evolutions - Dematex
+# Propositions d'evolutions - MACI/SRESEAUX
 
 Analyse comparative entre les specifications metier (`spec.md`) et l'implementation actuelle.
 Chaque evolution est classee par priorite : `[CRITIQUE]`, `[IMPORTANT]`, `[SOUHAITABLE]`.

@@ -1,5 +1,9 @@
 package com.dematex.backend.service;
 
+import com.dematex.backend.config.SecurityUtils;
+import com.dematex.backend.exception.BusinessException;
+import com.dematex.backend.exception.ResourceNotFoundException;
+import com.dematex.backend.exception.StorageException;
 import com.dematex.backend.model.AuditLog;
 import com.dematex.backend.model.Document;
 import com.dematex.backend.repository.AuditLogRepository;
@@ -24,6 +28,7 @@ public class StorageService {
 
     private final DocumentRepository documentRepository;
     private final AuditLogRepository auditLogRepository;
+    private final SecurityUtils securityUtils;
 
     @Value("${storage.root:./regulatory_files}")
     private String storageRoot;
@@ -100,6 +105,87 @@ public class StorageService {
         return result;
     }
 
+    public List<String> getIssuers(String allowedIssuer) {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        if (!Files.exists(root)) return List.of();
+        try (Stream<Path> paths = Files.list(root)) {
+            return paths.filter(Files::isDirectory)
+                    .filter(p -> allowedIssuer == null || p.getFileName().toString().equals(allowedIssuer))
+                    .map(p -> p.getFileName().toString())
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            log.error("Error listing issuers", e);
+            return List.of();
+        }
+    }
+
+    public List<String> getEntities(String issuer) {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        Path issuerPath = root.resolve(issuer);
+        if (!Files.exists(issuerPath)) return List.of();
+        try (Stream<Path> paths = Files.list(issuerPath)) {
+            return paths.filter(Files::isDirectory)
+                    .map(p -> p.getFileName().toString())
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            log.error("Error listing entities", e);
+            return List.of();
+        }
+    }
+
+    public List<Map<String, Object>> getTypes(String issuer, String entity) {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        Path entityPath = root.resolve(issuer).resolve(entity);
+        if (!Files.exists(entityPath)) return List.of();
+        try (Stream<Path> paths = Files.list(entityPath)) {
+            return paths.filter(Files::isDirectory)
+                    .sorted()
+                    .map(p -> {
+                        Map<String, Object> type = new LinkedHashMap<>();
+                        type.put("name", p.getFileName().toString());
+                        try (Stream<Path> files = Files.list(p)) {
+                            type.put("fileCount", files.filter(Files::isRegularFile).count());
+                        } catch (IOException e) {
+                            type.put("fileCount", 0);
+                        }
+                        return type;
+                    })
+                    .toList();
+        } catch (IOException e) {
+            log.error("Error listing types", e);
+            return List.of();
+        }
+    }
+
+    public List<Map<String, String>> getFiles(String issuer, String entity, String type) {
+        Path root = Paths.get(storageRoot).toAbsolutePath();
+        Path typePath = root.resolve(issuer).resolve(entity).resolve(type);
+        if (!Files.exists(typePath)) return List.of();
+        try (Stream<Path> paths = Files.list(typePath)) {
+            return paths.filter(Files::isRegularFile)
+                    .sorted()
+                    .map(p -> {
+                        String filename = p.getFileName().toString();
+                        int lastDot = filename.lastIndexOf('.');
+                        Map<String, String> file = new LinkedHashMap<>();
+                        file.put("filename", filename);
+                        file.put("baseName", lastDot > 0 ? filename.substring(0, lastDot) : filename);
+                        file.put("extension", lastDot > 0 ? filename.substring(lastDot + 1) : "");
+                        try {
+                            file.put("size", String.valueOf(Files.size(p)));
+                            file.put("lastModified", Files.getLastModifiedTime(p).toInstant().toString());
+                        } catch (IOException ignored) {}
+                        return file;
+                    })
+                    .toList();
+        } catch (IOException e) {
+            log.error("Error listing files", e);
+            return List.of();
+        }
+    }
+
     /**
      * Renomme un fichier identifié par son documentId.
      * @param documentId L'ID composite du document (issuer_entity_baseName)
@@ -107,121 +193,145 @@ public class StorageService {
      * @param newExtension Nouvelle extension (ex: "AR3", "ALIRE"). Null = garder l'actuelle.
      * @return Le nouveau chemin du fichier.
      */
-    public byte[] getFileContent(String issuer, String entity, String type, String documentId) throws IOException {
-        return Files.readAllBytes(findFile(issuer, entity, type, documentId));
+    public byte[] getFileContent(String issuer, String entity, String type, String documentId) {
+        try {
+            return Files.readAllBytes(findFile(issuer, entity, type, documentId));
+        } catch (IOException e) {
+            throw new StorageException("Erreur lors de la lecture du fichier", e);
+        }
     }
 
-    public String renameFile(String documentId, String newName, String newExtension) throws IOException {
-        Document doc = documentRepository.findById(documentId)
-                .orElseThrow(() -> new IOException("Document introuvable: " + documentId));
+    public String renameFile(String documentId, String newName, String newExtension) {
+        try {
+            Document doc = documentRepository.findById(documentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Document introuvable: " + documentId));
 
-        Path currentFile = findFile(doc);
-        String currentFilename = currentFile.getFileName().toString();
-        int lastDot = currentFilename.lastIndexOf('.');
+            Path currentFile = findFile(doc);
+            String currentFilename = currentFile.getFileName().toString();
+            int lastDot = currentFilename.lastIndexOf('.');
 
-        String baseName = lastDot > 0 ? currentFilename.substring(0, lastDot) : currentFilename;
-        String extension = lastDot > 0 ? currentFilename.substring(lastDot + 1) : "";
+            String baseName = lastDot > 0 ? currentFilename.substring(0, lastDot) : currentFilename;
+            String extension = lastDot > 0 ? currentFilename.substring(lastDot + 1) : "";
 
-        String finalName = (newName != null && !newName.isBlank()) ? newName : baseName;
-        String finalExt = (newExtension != null && !newExtension.isBlank()) ? newExtension : extension;
+            String finalName = (newName != null && !newName.isBlank()) ? newName : baseName;
+            String finalExt = (newExtension != null && !newExtension.isBlank()) ? newExtension : extension;
 
-        String newFilename = finalName + "." + finalExt;
-        Path newPath = currentFile.resolveSibling(newFilename);
+            String newFilename = finalName + "." + finalExt;
+            Path newPath = currentFile.resolveSibling(newFilename);
 
-        if (Files.exists(newPath) && !newPath.equals(currentFile)) {
-            throw new IOException("Un fichier avec ce nom existe déjà: " + newFilename);
+            if (Files.exists(newPath) && !newPath.equals(currentFile)) {
+                throw new BusinessException("Un fichier avec ce nom existe déjà: " + newFilename);
+            }
+
+            Files.move(currentFile, newPath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("Fichier renommé: {} -> {}", currentFile, newPath);
+
+            auditLogRepository.save(AuditLog.builder()
+                    .user(getCurrentUsername())
+                    .action("FILE_RENAME")
+                    .resource(documentId)
+                    .documentId(documentId)
+                    .issuerCode(doc.getIssuerCode())
+                    .entityCode(doc.getEntityCode())
+                    .status(currentFilename + " → " + newFilename)
+                    .build());
+
+            return newPath.toString();
+        } catch (IOException e) {
+            throw new StorageException("Erreur lors du renommage du fichier", e);
         }
-
-        Files.move(currentFile, newPath, StandardCopyOption.REPLACE_EXISTING);
-        log.info("Fichier renommé: {} -> {}", currentFile, newPath);
-
-        auditLogRepository.save(AuditLog.builder()
-                .user("admin")
-                .action("FILE_RENAME")
-                .resource(documentId)
-                .status(currentFilename + " → " + newFilename)
-                .build());
-
-        return newPath.toString();
     }
 
     /**
      * Déplace des fichiers vers une nouvelle structure de répertoires.
      */
-    public List<String> moveFiles(List<String> documentIds, String targetIssuer, String targetEntity, String targetType) throws IOException {
-        Path root = Paths.get(storageRoot).toAbsolutePath();
-        Path targetDir = root.resolve(targetIssuer).resolve(targetEntity).resolve(targetType);
-        Files.createDirectories(targetDir);
+    public List<String> moveFiles(List<String> documentIds, String targetIssuer, String targetEntity, String targetType) {
+        try {
+            Path root = Paths.get(storageRoot).toAbsolutePath();
+            Path targetDir = root.resolve(targetIssuer).resolve(targetEntity).resolve(targetType);
+            Files.createDirectories(targetDir);
 
-        List<String> movedPaths = new ArrayList<>();
-        for (String docId : documentIds) {
-            Document doc = documentRepository.findById(docId).orElse(null);
-            if (doc == null) {
-                log.warn("Document introuvable pour déplacement: {}", docId);
-                continue;
+            List<String> movedPaths = new ArrayList<>();
+            for (String docId : documentIds) {
+                Document doc = documentRepository.findById(docId).orElse(null);
+                if (doc == null) {
+                    log.warn("Document introuvable pour déplacement: {}", docId);
+                    continue;
+                }
+
+                Path currentFile = findFile(doc);
+                Path newPath = targetDir.resolve(currentFile.getFileName());
+
+                if (Files.exists(newPath)) {
+                    log.warn("Fichier déjà existant à la destination, ignoré: {}", newPath);
+                    continue;
+                }
+
+                Files.move(currentFile, newPath, StandardCopyOption.REPLACE_EXISTING);
+                movedPaths.add(newPath.toString());
+
+                auditLogRepository.save(AuditLog.builder()
+                        .user(getCurrentUsername())
+                        .action("FILE_MOVE")
+                        .resource(docId)
+                        .documentId(docId)
+                        .issuerCode(targetIssuer)
+                        .entityCode(targetEntity)
+                        .status(targetIssuer + "/" + targetEntity + "/" + targetType)
+                        .build());
             }
 
-            Path currentFile = findFile(doc);
-            Path newPath = targetDir.resolve(currentFile.getFileName());
-
-            if (Files.exists(newPath)) {
-                log.warn("Fichier déjà existant à la destination, ignoré: {}", newPath);
-                continue;
-            }
-
-            Files.move(currentFile, newPath, StandardCopyOption.REPLACE_EXISTING);
-            movedPaths.add(newPath.toString());
-
-            auditLogRepository.save(AuditLog.builder()
-                    .user("admin")
-                    .action("FILE_MOVE")
-                    .resource(docId)
-                    .status(targetIssuer + "/" + targetEntity + "/" + targetType)
-                    .build());
+            return movedPaths;
+        } catch (IOException e) {
+            throw new StorageException("Erreur lors du déplacement des fichiers", e);
         }
-
-        return movedPaths;
     }
 
     /**
      * Renomme en masse l'extension de tous les fichiers d'un répertoire donné.
      */
-    public int bulkRenameExtension(String issuer, String entity, String type, String fromExtension, String toExtension) throws IOException {
-        Path root = Paths.get(storageRoot).toAbsolutePath();
-        Path targetDir = root.resolve(issuer).resolve(entity).resolve(type);
+    public int bulkRenameExtension(String issuer, String entity, String type, String fromExtension, String toExtension) {
+        try {
+            Path root = Paths.get(storageRoot).toAbsolutePath();
+            Path targetDir = root.resolve(issuer).resolve(entity).resolve(type);
 
-        if (!Files.exists(targetDir)) {
-            throw new IOException("Répertoire introuvable: " + targetDir);
-        }
+            if (!Files.exists(targetDir)) {
+                throw new ResourceNotFoundException("Répertoire introuvable: " + targetDir);
+            }
 
-        int count = 0;
-        try (Stream<Path> files = Files.list(targetDir)) {
+            int count = 0;
+            try (Stream<Path> files = Files.list(targetDir)) {
             List<Path> matchingFiles = files
                     .filter(Files::isRegularFile)
                     .filter(p -> p.getFileName().toString().endsWith("." + fromExtension))
                     .toList();
 
-            for (Path file : matchingFiles) {
-                String filename = file.getFileName().toString();
-                String baseName = filename.substring(0, filename.lastIndexOf('.'));
-                Path newPath = file.resolveSibling(baseName + "." + toExtension);
-                Files.move(file, newPath, StandardCopyOption.REPLACE_EXISTING);
-                count++;
+                for (Path file : matchingFiles) {
+                    String filename = file.getFileName().toString();
+                    String baseName = filename.substring(0, filename.lastIndexOf('.'));
+                    Path newPath = file.resolveSibling(baseName + "." + toExtension);
+                    Files.move(file, newPath, StandardCopyOption.REPLACE_EXISTING);
+                    count++;
+                }
             }
-        }
 
-        if (count > 0) {
+            if (count > 0) {
             auditLogRepository.save(AuditLog.builder()
-                    .user("admin")
+                    .user(getCurrentUsername())
                     .action("BULK_RENAME")
                     .resource(issuer + "/" + entity + "/" + type)
+                    .issuerCode(issuer)
+                    .entityCode(entity)
                     .status(fromExtension + " → " + toExtension + " (" + count + " fichiers)")
                     .build());
         }
 
-        log.info("Renommage en lot: {}/{}/{} — {} fichiers renommés (.{} → .{})",
-                issuer, entity, type, count, fromExtension, toExtension);
-        return count;
+            log.info("Renommage en lot: {}/{}/{} — {} fichiers renommés (.{} → .{})",
+                    issuer, entity, type, count, fromExtension, toExtension);
+            return count;
+        } catch (IOException e) {
+            throw new StorageException("Erreur lors du renommage en masse", e);
+        }
     }
 
     /**
@@ -235,61 +345,68 @@ public class StorageService {
      * @param file         Le fichier uploadé
      * @return Le chemin du fichier déposé
      */
-    public String uploadFile(String destinataire, String entity, String type, String statut, MultipartFile file) throws IOException {
+    public String uploadFile(String destinataire, String entity, String type, String statut, MultipartFile file) {
         if (file.isEmpty()) {
-            throw new IOException("Le fichier est vide");
+            throw new BusinessException("Le fichier est vide");
         }
 
-        // Validation des paramètres contre le path traversal
-        validatePathSegment(destinataire, "destinataire");
-        validatePathSegment(entity, "entity");
-        validatePathSegment(type, "type");
-        validatePathSegment(statut, "statut");
+        try {
+            // Validation des paramètres contre le path traversal
+            validatePathSegment(destinataire, "destinataire");
+            validatePathSegment(entity, "entity");
+            validatePathSegment(type, "type");
+            validatePathSegment(statut, "statut");
 
-        // Extraire le nom de base du fichier original (sans extension)
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || originalFilename.isBlank()) {
-            throw new IOException("Le nom du fichier est requis");
+            // Extraire le nom de base du fichier original (sans extension)
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isBlank()) {
+                throw new BusinessException("Le nom du fichier est requis");
+            }
+            // Sanitize: ne garder que le nom du fichier, pas un éventuel chemin
+            String safeName = Paths.get(originalFilename).getFileName().toString();
+            int lastDot = safeName.lastIndexOf('.');
+            String baseName = lastDot > 0 ? safeName.substring(0, lastDot) : safeName;
+            validatePathSegment(baseName, "filename");
+
+            String finalFilename = baseName + "." + statut;
+
+            Path root = Paths.get(storageRoot).toAbsolutePath();
+            Path targetDir = root.resolve(destinataire).resolve(entity).resolve(type);
+            Files.createDirectories(targetDir);
+
+            Path targetFile = targetDir.resolve(finalFilename);
+            if (Files.exists(targetFile)) {
+                throw new BusinessException("Un fichier avec ce nom existe déjà: " + finalFilename);
+            }
+
+            try (InputStream is = file.getInputStream()) {
+                Files.copy(is, targetFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            log.info("Fichier déposé: {}", targetFile);
+
+            auditLogRepository.save(AuditLog.builder()
+                    .user(getCurrentUsername())
+                    .action("FILE_UPLOAD")
+                    .resource(destinataire + "/" + entity + "/" + type + "/" + finalFilename)
+                    .documentId(destinataire + "_" + entity + "_" + baseName)
+                    .issuerCode(destinataire)
+                    .entityCode(entity)
+                    .status(statut)
+                    .build());
+
+            return targetFile.toString();
+        } catch (IOException e) {
+            throw new StorageException("Erreur lors de l'upload du fichier", e);
         }
-        // Sanitize: ne garder que le nom du fichier, pas un éventuel chemin
-        String safeName = Paths.get(originalFilename).getFileName().toString();
-        int lastDot = safeName.lastIndexOf('.');
-        String baseName = lastDot > 0 ? safeName.substring(0, lastDot) : safeName;
-        validatePathSegment(baseName, "filename");
-
-        String finalFilename = baseName + "." + statut;
-
-        Path root = Paths.get(storageRoot).toAbsolutePath();
-        Path targetDir = root.resolve(destinataire).resolve(entity).resolve(type);
-        Files.createDirectories(targetDir);
-
-        Path targetFile = targetDir.resolve(finalFilename);
-        if (Files.exists(targetFile)) {
-            throw new IOException("Un fichier avec ce nom existe déjà: " + finalFilename);
-        }
-
-        try (InputStream is = file.getInputStream()) {
-            Files.copy(is, targetFile, StandardCopyOption.REPLACE_EXISTING);
-        }
-
-        log.info("Fichier déposé: {}", targetFile);
-
-        auditLogRepository.save(AuditLog.builder()
-                .user("admin")
-                .action("FILE_UPLOAD")
-                .resource(destinataire + "/" + entity + "/" + type + "/" + finalFilename)
-                .status(statut)
-                .build());
-
-        return targetFile.toString();
     }
 
-    private void validatePathSegment(String value, String paramName) throws IOException {
+    private void validatePathSegment(String value, String paramName) {
         if (value == null || value.isBlank()) {
-            throw new IOException("Le paramètre '" + paramName + "' est requis");
+            throw new BusinessException("Le paramètre '" + paramName + "' est requis");
         }
         if (value.contains("..") || value.contains("/") || value.contains("\\")) {
-            throw new IOException("Le paramètre '" + paramName + "' contient des caractères invalides");
+            throw new BusinessException("Le paramètre '" + paramName + "' contient des caractères invalides");
         }
     }
 
@@ -356,5 +473,13 @@ public class StorageService {
         }
 
         throw new IOException("Fichier introuvable pour le document: " + documentId);
+    }
+
+    private String getCurrentUsername() {
+        try {
+            return securityUtils.getCurrentUser().getUsername();
+        } catch (org.springframework.security.access.AccessDeniedException ex) {
+            return "system";
+        }
     }
 }

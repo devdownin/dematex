@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, provideZoneChangeDetection, LOCALE_ID } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
@@ -7,6 +7,7 @@ import { APP_INITIALIZER } from '@angular/core';
 import { ConfigService } from './services/config.service';
 import { AuthService } from './services/auth.service';
 import { authInterceptor } from './services/auth.interceptor';
+import { TranslationService } from './services/translation.service';
 import { catchError, of, switchMap } from 'rxjs';
 
 import { routes } from './app.routes';
@@ -20,13 +21,19 @@ export const appConfig: ApplicationConfig = {
     provideCharts(withDefaultRegisterables()),
     {
       provide: APP_INITIALIZER,
-      useFactory: (authService: AuthService, configService: ConfigService) => () =>
+      useFactory: (authService: AuthService, configService: ConfigService, translationService: TranslationService) => () =>
         authService.autoLogin().pipe(
-          switchMap(() => configService.loadConfig()),
+          switchMap(() => configService.loadConfig().pipe(catchError(() => of(null)))),
+          switchMap(() => translationService.init()),
           catchError(() => of(null))
         ),
-      deps: [AuthService, ConfigService],
+      deps: [AuthService, ConfigService, TranslationService],
       multi: true
+    },
+    {
+      provide: LOCALE_ID,
+      useFactory: (ts: TranslationService) => ts.lang() === 'fr' ? 'fr-FR' : 'en-US',
+      deps: [TranslationService]
     }
   ]
 };

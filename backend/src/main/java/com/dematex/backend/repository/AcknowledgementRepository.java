@@ -5,4 +5,5 @@ import java.util.List;
 
 public interface AcknowledgementRepository extends JpaRepository<Acknowledgement, Long> {
     List<Acknowledgement> findByDocumentIdOrderByTimestampAsc(String documentId);
+    java.util.Optional<Acknowledgement> findByIdempotencyKeyAndDocumentId(String idempotencyKey, String documentId);
 }
