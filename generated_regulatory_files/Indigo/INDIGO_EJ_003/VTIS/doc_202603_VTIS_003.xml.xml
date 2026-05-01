@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vtis xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://localhost:8080/api/v1/schemas/VTIS/v1.0"
+      version="1.0">
+  <issuer>Indigo</issuer>
+  <entity>INDIGO_EJ_003</entity>
+  <period>2026-03</period>
+  <trainId>TRAIN-202603-03</trainId>
+  <crmensRef>CRMENS-202603-03</crmensRef>
+  <rub1>125320.00</rub1>
+  <rub2>4790.00</rub2>
+  <rub3>8180.00</rub3>
+  <b2bi>22126.40</b2bi>
+  <b2bd>105100.40</b2bd>
+  <b2g>11063.20</b2g>
+  <gapAmount>25.00</gapAmount>
+  <totalTtc>138290.00</totalTtc>
+</vtis>

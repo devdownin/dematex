@@ -17,7 +17,7 @@ Le portail implémente le système de design "Guichet unique" :
 
 L'une des particularités du système est sa gestion du stockage :
 
-- **FileSystem (Source de Vérité)** : Les documents sont organisés dans une hiérarchie `Destinataire / Entité / Type / Fichier`. Le statut du document est porté par son **extension** (ex: `.ALIRE` pour initial, `.AR3` pour preuve juridique).
+- **FileSystem (Source de Vérité)** : Les documents sont organisés dans une hiérarchie `Destinataire / Entité / Type / Fichier`. Le statut du document est porté par son **extension** (ex: `.xml` pour initial, `.AR3` pour preuve juridique).
 - **Index JPA (Performance)** : Pour garantir des performances de listing et de recherche compatibles avec l'industrie, un index léger (H2/PostgreSQL) est maintenu.
 - **Synchronisation** : Un service d'arrière-plan synchronise périodiquement (toutes les minutes) l'état du filesystem vers l'index JPA.
 

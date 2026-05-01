@@ -190,7 +190,7 @@ public class StorageService {
      * Renomme un fichier identifié par son documentId.
      * @param documentId L'ID composite du document (issuer_entity_baseName)
      * @param newName Nouveau nom de base (sans extension). Null = garder l'actuel.
-     * @param newExtension Nouvelle extension (ex: "AR3", "ALIRE"). Null = garder l'actuelle.
+     * @param newExtension Nouvelle extension (ex: "AR3", "xml"). Null = garder l'actuelle.
      * @return Le nouveau chemin du fichier.
      */
     public byte[] getFileContent(String issuer, String entity, String type, String documentId) {
@@ -341,7 +341,7 @@ public class StorageService {
      * @param destinataire Répertoire racine (ex: REC_001)
      * @param entity       Code entité (ex: ENT_ALPHA)
      * @param type         Type de document (ex: FTIS, VTIS)
-     * @param statut       Extension/statut du fichier (ex: ALIRE, AR3)
+     * @param statut       Extension/statut du fichier (ex: xml, AR3)
      * @param file         Le fichier uploadé
      * @return Le chemin du fichier déposé
      */

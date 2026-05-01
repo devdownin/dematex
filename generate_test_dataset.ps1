@@ -52,7 +52,7 @@ function Get-StatusForIndex {
     switch ($Index % 10) {
         0 { return "AR3" }
         1 { return "AR1" }
-        default { return "ALIRE" }
+        default { return "xml" }
     }
 }
 
@@ -145,7 +145,9 @@ function New-VtisXml {
     $totalTtc = $Rub1 + $Rub2 + $Rub3
     return @"
 <?xml version="1.0" encoding="UTF-8"?>
-<vtis>
+<vtis xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://localhost:8080/api/v1/schemas/VTIS/v1.0"
+      version="1.0">
   <issuer>$Recipient</issuer>
   <entity>$Entity</entity>
   <period>$PeriodLabel</period>
@@ -175,7 +177,9 @@ function New-FtisXml {
     $invoiceBlock = ($InvoiceXml -join [Environment]::NewLine)
     return @"
 <?xml version="1.0" encoding="UTF-8"?>
-<ftis>
+<ftis xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://localhost:8080/api/v1/schemas/FTIS/v1.0"
+      version="1.0">
   <issuer>$Recipient</issuer>
   <entity>$Entity</entity>
   <period>$PeriodLabel</period>
@@ -198,7 +202,9 @@ function New-PtisXml {
     $lastFlowFlag = if ($IsLastMonthlyFlow) { "true" } else { "false" }
     return @"
 <?xml version="1.0" encoding="UTF-8"?>
-<ptis>
+<ptis xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://localhost:8080/api/v1/schemas/PTIS/v1.0"
+      version="1.0">
   <issuer>$Recipient</issuer>
   <entity>$Entity</entity>
   <period>$PeriodLabel</period>

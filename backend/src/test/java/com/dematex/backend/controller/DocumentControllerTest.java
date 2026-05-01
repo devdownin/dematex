@@ -153,18 +153,18 @@ class DocumentControllerTest {
                 "demo.zip",
                 MediaType.APPLICATION_OCTET_STREAM_VALUE,
                 "payload".getBytes(StandardCharsets.UTF_8));
-        when(storageService.uploadFile("Indigo", "ENT1", "FTIS", "ALIRE", file)).thenReturn("/tmp/demo.zip");
+        when(storageService.uploadFile("Indigo", "ENT1", "FTIS", "xml", file)).thenReturn("/tmp/demo.zip");
 
         mockMvc.perform(multipart("/api/v1/documents/upload")
                 .file(file)
                 .param("destinataire", "Indigo")
                 .param("entity", "ENT1")
                 .param("type", "FTIS")
-                .param("statut", "ALIRE"))
+                .param("statut", "xml"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("uploaded"));
 
         verify(securityUtils).checkVautAccess();
-        verify(storageService).uploadFile("Indigo", "ENT1", "FTIS", "ALIRE", file);
+        verify(storageService).uploadFile("Indigo", "ENT1", "FTIS", "xml", file);
     }
 }

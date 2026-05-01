@@ -10,6 +10,7 @@ import { SystemSettingsComponent } from './components/system-settings/system-set
 import { LoginComponent } from './components/login/login.component';
 import { adminGuard } from './admin.guard';
 import { ClientApiConsoleComponent } from './components/client-api-console/client-api-console.component';
+import { TechnicalResourcesComponent } from './components/technical-resources/technical-resources.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -24,6 +25,7 @@ export const routes: Routes = [
       { path: 'documents', component: DocumentListComponent },
       { path: 'documents/:documentId', component: DocumentDetailComponent },
       { path: 'client-apis', component: ClientApiConsoleComponent },
+      { path: 'tech-resources', component: TechnicalResourcesComponent },
       { path: 'audit', component: AuditTrailComponent },
       { path: 'settings', component: SystemSettingsComponent, canActivate: [adminGuard] }
     ]

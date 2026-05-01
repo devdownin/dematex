@@ -53,6 +53,8 @@ public class DocumentService {
     private final AcknowledgementRepository acknowledgementRepository;
     private final AuditLogRepository auditLogRepository;
     private final EventService eventService;
+    private final ValidationService validationService;
+    private final AlertRepository alertRepository;
 
     @Value("${storage.root:./regulatory_files}")
     private String storageRoot;
@@ -479,7 +481,7 @@ public class DocumentService {
 
     /**
      * Enregistre un accusé de réception (AR).
-     * 1. Renomme le fichier physique (l'extension porte le statut, ex: doc.ALIRE -> doc.AR3).
+     * 1. Renomme le fichier physique (l'extension porte le statut, ex: doc.xml -> doc.AR3).
      * 2. Met à jour l'index JPA.
      * En cas de verrouillage fichier temporaire, l'opération est rejouée automatiquement.
      */
@@ -701,7 +703,7 @@ public class DocumentService {
         try { doc.setType(DocumentType.valueOf(typeStr)); } catch (Exception e) { doc.setType(DocumentType.CRMENS); }
         doc.setClientType(inferClientType(uniqueDocId));
 
-        if (ext.equalsIgnoreCase("ALIRE")) {
+        if (ext.equalsIgnoreCase("xml")) {
             doc.setStatus(AcknowledgementType.AR0);
         } else {
             try { doc.setStatus(AcknowledgementType.valueOf(ext)); } catch (Exception e) { doc.setStatus(AcknowledgementType.AR0); }
@@ -723,6 +725,16 @@ public class DocumentService {
                 doc.setHash(calculateSHA256(filePath));
             } catch (Exception e) {
                 log.error("Erreur lors du calcul du hash pour {}", filePath, e);
+            }
+            // La validation XSD ne s'applique qu'aux documents en état initial (AR0).
+            // Les statuts AR2/AR3/AR4 ont déjà franchi un contrôle métier.
+            if (doc.getStatus() == AcknowledgementType.AR0) {
+                try {
+                    validationService.validate(filePath, doc.getType());
+                } catch (Exception e) {
+                    log.warn("Validation XSD échouée pour {} : {}", filePath, e.getMessage());
+                    createSchemaAlert(doc, e.getMessage());
+                }
             }
         } else if (existingDocument != null) {
             doc.setHash(existingDocument.getHash());
@@ -1192,7 +1204,7 @@ public class DocumentService {
                 .replace('\\', '/')
                 .replaceAll("^.*/", "");
 
-        String normalized = basename.replaceAll("(?i)\\.(ALIRE|AR0|AR1|AR2|AR3|AR4)$", "");
+        String normalized = basename.replaceAll("(?i)\\.(xml|AR0|AR1|AR2|AR3|AR4)$", "");
         return normalized.isEmpty() ? basename : normalized;
     }
 
@@ -1210,6 +1222,30 @@ public class DocumentService {
             return ((User) principal).getUsername();
         }
         return "system";
+    }
+
+    private void createSchemaAlert(Document doc, String message) {
+        String fingerprint = "SCHEMA_INVALID::" + doc.getDocumentId();
+        if (alertRepository.findByFingerprint(fingerprint).isPresent()) {
+            return;
+        }
+        try {
+            alertRepository.save(Alert.builder()
+                    .fingerprint(fingerprint)
+                    .type(AlertType.SCHEMA_INVALID)
+                    .code("ALT-SCHEMA-ERR")
+                    .title("Erreur de schéma XSD")
+                    .message("Le document " + doc.getDocumentId() + " ne respecte pas le contrat d'interface : " + message)
+                    .documentId(doc.getDocumentId())
+                    .entityCode(doc.getEntityCode())
+                    .issuerCode(doc.getIssuerCode())
+                    .period(doc.getPeriod())
+                    .detectedAt(Instant.now())
+                    .build());
+        } catch (DataIntegrityViolationException e) {
+            // Race possible depuis le scan parallèle : un autre thread a créé l'alerte avec le même fingerprint.
+            log.debug("Alerte SCHEMA_INVALID déjà présente pour {} (concurrent insert)", doc.getDocumentId());
+        }
     }
 
     private String csv(Object value) {

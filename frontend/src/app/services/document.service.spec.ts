@@ -73,7 +73,7 @@ describe('DocumentService', () => {
     formData.append('destinataire', 'Indigo');
     formData.append('entity', 'ENT1');
     formData.append('type', 'FTIS');
-    formData.append('statut', 'ALIRE');
+    formData.append('statut', 'xml');
     formData.append('file', new Blob(['demo']), 'demo.zip');
 
     service.uploadDocument(formData).subscribe(response => {

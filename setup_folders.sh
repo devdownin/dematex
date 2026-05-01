@@ -14,9 +14,9 @@ for rec in "${RECIPIENTS[@]}"; do
             DIR="$BASE_DIR/$rec/$ent/$type"
             mkdir -p "$DIR"
 
-            # Create sample files with .ALIRE extension
-            touch "$DIR/doc_202401_${type}_001.ALIRE"
-            touch "$DIR/doc_202401_${type}_002.ALIRE"
+            # Create sample files with .xml extension
+            touch "$DIR/doc_202401_${type}_001.xml"
+            touch "$DIR/doc_202401_${type}_002.xml"
 
             # Create some already processed files with .AR3 extension
             touch "$DIR/doc_202312_${type}_processed.AR3"

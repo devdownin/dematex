@@ -12,9 +12,9 @@ foreach ($rec in $Recipients) {
             $Path = Join-Path $BaseDir (Join-Path $rec (Join-Path $ent $type))
             New-Item -ItemType Directory -Force -Path $Path | Out-Null
 
-            # Create sample files with .ALIRE extension
-            New-Item -ItemType File -Path (Join-Path $Path "doc_202401_$($type)_001.ALIRE") -Force | Out-Null
-            New-Item -ItemType File -Path (Join-Path $Path "doc_202401_$($type)_002.ALIRE") -Force | Out-Null
+            # Create sample files with .xml extension
+            New-Item -ItemType File -Path (Join-Path $Path "doc_202401_$($type)_001.xml") -Force | Out-Null
+            New-Item -ItemType File -Path (Join-Path $Path "doc_202401_$($type)_002.xml") -Force | Out-Null
 
             # Create some already processed files with .AR3 extension
             New-Item -ItemType File -Path (Join-Path $Path "doc_202312_$($type)_processed.AR3") -Force | Out-Null

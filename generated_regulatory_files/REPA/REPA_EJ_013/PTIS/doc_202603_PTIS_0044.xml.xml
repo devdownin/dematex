@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ptis xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://localhost:8080/api/v1/schemas/PTIS/v1.0"
+      version="1.0">
+  <issuer>REPA</issuer>
+  <entity>REPA_EJ_013</entity>
+  <period>2026-03</period>
+  <lastMonthlyFlow>true</lastMonthlyFlow>
+  <payment><invoiceId>REP-13-B2BI-0015-01</invoiceId><amount>-25.70</amount><type>CORRECTION</type></payment>
+</ptis>

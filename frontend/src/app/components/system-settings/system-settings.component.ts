@@ -135,7 +135,7 @@ import { TranslationService } from '../../services/translation.service';
                   <label class="text-xs font-bold text-on-surface-variant block mb-1">{{ t('rename.newExt') }}</label>
                   <select [(ngModel)]="renameNewExt" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary">
                     <option value="">{{ t('rename.keepCurrent') }} (.{{ selectedFile?.extension }})</option>
-                    <option value="ALIRE">{{ t('docList.received') }}</option>
+                    <option value="xml">{{ t('docList.received') }}</option>
                     <option value="AR2">{{ t('docList.processed') }}</option>
                     <option value="AR3">{{ t('docList.validatedAr3') }}</option>
                     <option value="AR4">{{ t('docList.rejected') }}</option>
@@ -217,7 +217,7 @@ import { TranslationService } from '../../services/translation.service';
                   <div>
                     <label class="text-xs font-bold text-on-surface-variant block mb-1">{{ t('bulk.from') }}</label>
                     <select [(ngModel)]="bulkFromExt" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
-                      <option value="ALIRE">{{ t('docList.received') }}</option>
+                      <option value="xml">{{ t('docList.received') }}</option>
                       <option value="AR2">{{ t('docList.processed') }}</option>
                       <option value="AR3">{{ t('docList.validatedAr3') }}</option>
                       <option value="AR4">{{ t('docList.rejected') }}</option>
@@ -226,7 +226,7 @@ import { TranslationService } from '../../services/translation.service';
                   <div>
                     <label class="text-xs font-bold text-on-surface-variant block mb-1">{{ t('bulk.to') }}</label>
                     <select [(ngModel)]="bulkToExt" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
-                      <option value="ALIRE">{{ t('docList.received') }}</option>
+                      <option value="xml">{{ t('docList.received') }}</option>
                       <option value="AR2">{{ t('docList.processed') }}</option>
                       <option value="AR3">{{ t('docList.validatedAr3') }}</option>
                       <option value="AR4">{{ t('docList.rejected') }}</option>
@@ -533,7 +533,7 @@ export class SystemSettingsComponent implements OnInit {
   bulkIssuer = '';
   bulkEntity = '';
   bulkType = '';
-  bulkFromExt = 'ALIRE';
+  bulkFromExt = 'xml';
   bulkToExt = 'AR3';
   configForm: Partial<PortalConfig> = {};
 

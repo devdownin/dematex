@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="vtis">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="issuer" type="xs:string"/>
+        <xs:element name="entity" type="xs:string"/>
+        <xs:element name="period" type="xs:string"/>
+        <xs:element name="trainId" type="xs:string"/>
+        <xs:element name="crmensRef" type="xs:string"/>
+        <xs:element name="rub1" type="xs:decimal"/>
+        <xs:element name="rub2" type="xs:decimal"/>
+        <xs:element name="rub3" type="xs:decimal"/>
+        <xs:element name="b2bi" type="xs:decimal"/>
+        <xs:element name="b2bd" type="xs:decimal"/>
+        <xs:element name="b2g" type="xs:decimal"/>
+        <xs:element name="gapAmount" type="xs:decimal"/>
+        <xs:element name="totalTtc" type="xs:decimal"/>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

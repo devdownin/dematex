@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ptis xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://localhost:8080/api/v1/schemas/PTIS/v1.0"
+      version="1.0">
+  <issuer>Indigo</issuer>
+  <entity>INDIGO_EJ_149</entity>
+  <period>2026-03</period>
+  <lastMonthlyFlow>false</lastMonthlyFlow>
+  <payment><invoiceId>IND-149-B2BD-0001-03</invoiceId><amount>1703.00</amount><type>PAIEMENT</type></payment>
+  <payment><invoiceId>IND-149-B2BD-0001-04</invoiceId><amount>1716.00</amount><type>PAIEMENT</type></payment>
+</ptis>

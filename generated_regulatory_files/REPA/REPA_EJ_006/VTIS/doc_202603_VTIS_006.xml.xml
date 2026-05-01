@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vtis xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="http://localhost:8080/api/v1/schemas/VTIS/v1.0"
+      version="1.0">
+  <issuer>REPA</issuer>
+  <entity>REPA_EJ_006</entity>
+  <period>2026-03</period>
+  <trainId>TRAIN-202603-06</trainId>
+  <crmensRef>CRMENS-202603-06</crmensRef>
+  <rub1>130330.00</rub1>
+  <rub2>5225.00</rub2>
+  <rub3>8750.00</rub3>
+  <b2bi>23088.80</b2bi>
+  <b2bd>109671.80</b2bd>
+  <b2g>11544.40</b2g>
+  <gapAmount>25.00</gapAmount>
+  <totalTtc>144305.00</totalTtc>
+</vtis>

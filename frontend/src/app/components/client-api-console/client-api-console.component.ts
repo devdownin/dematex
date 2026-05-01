@@ -503,7 +503,7 @@ export class ClientApiConsoleComponent {
 
   protected readonly ackTypes: AcknowledgementType[] = [AcknowledgementType.AR2, AcknowledgementType.AR3, AcknowledgementType.AR4];
   protected readonly documentTypes = ['FTIS', 'VTIS', 'PTIS', 'CRMENS'];
-  protected readonly uploadStatuses = ['ALIRE', 'AR2', 'AR3', 'AR4'];
+  protected readonly uploadStatuses = ['xml', 'AR2', 'AR3', 'AR4'];
 
   // ── Client forms ──────────────────────────────────────
   protected deliveriesForm = { since: '', entityCode: '', limit: 100 };
@@ -517,7 +517,7 @@ export class ClientApiConsoleComponent {
   // ── Admin (VAUT) forms ──────────────────────────────────────
   protected searchForm = { q: '', entityCode: '', limit: 10 };
   protected ackForm = { entityCode: '', documentId: '', type: AcknowledgementType.AR3, details: '' };
-  protected uploadForm = { destinataire: '', entity: '', type: 'FTIS', statut: 'ALIRE' };
+  protected uploadForm = { destinataire: '', entity: '', type: 'FTIS', statut: 'xml' };
 
   // ── Loading states ─────────────────────────────────────────
   protected deliveriesLoading = false;

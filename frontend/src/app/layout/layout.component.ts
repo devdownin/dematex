@@ -37,6 +37,10 @@ import { Subject, debounceTime, takeUntil } from 'rxjs';
             <span class="material-symbols-outlined" [class.filled]="isLinkActive('/client-apis')">terminal</span>
             {{ t('nav.clientApis') }}
           </a>
+          <a routerLink="/tech-resources" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
+            <span class="material-symbols-outlined" [class.filled]="isLinkActive('/tech-resources')">description</span>
+            {{ t('nav.techResources') }}
+          </a>
           <a routerLink="/alerts" routerLinkActive="bg-white text-slate-950 font-semibold shadow-sm" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 rounded-lg transition-all">
             <span class="material-symbols-outlined" [class.filled]="isLinkActive('/alerts')">warning</span>
             {{ t('nav.alerts') }}

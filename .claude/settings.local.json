@@ -51,7 +51,12 @@
       "Bash(cmd.exe //c \"mvnw.cmd --version\")",
       "Bash(cmd.exe //c \".\\\\mvnw.cmd --version\")",
       "Bash(./mvnw --version)",
-      "Bash(grep -E \"\\\\.html|\\\\.ts$\")"
+      "Bash(grep -E \"\\\\.html|\\\\.ts$\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('frontend/public/i18n/fr.json','utf8'\\)\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('frontend/public/i18n/en.json','utf8'\\)\\)\")",
+      "Bash(./mvnw -q -o -DskipTests compile)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(./mvnw -q -o test -Dtest=DocumentControllerTest)"
     ]
   }
 }

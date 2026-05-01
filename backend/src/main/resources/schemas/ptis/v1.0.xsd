@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="ptis">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="issuer" type="xs:string"/>
+        <xs:element name="entity" type="xs:string"/>
+        <xs:element name="period" type="xs:string"/>
+        <xs:element name="lastMonthlyFlow" type="xs:boolean"/>
+        <xs:element name="payment" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="invoiceId" type="xs:string"/>
+              <xs:element name="amount" type="xs:decimal"/>
+              <xs:element name="type" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
